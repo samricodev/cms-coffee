@@ -40,13 +40,26 @@ npm run dev                  # http://localhost:3000
 
 ```
 src/
-  app/          Rutas (App Router). Por ahora solo la portada de prueba.
+  app/
+    api/posts/      Route Handlers: la capa HTTP (delgada)
+    page.tsx        Portada de prueba
   db/
-    schema.ts   Definición de tablas: la fuente de verdad del modelo
-    index.ts    Cliente de Drizzle + pool de conexiones
-    seed.ts     Datos de ejemplo
-drizzle/        Migraciones SQL generadas (se versionan en git)
+    schema.ts       Definición de tablas: la fuente de verdad del modelo
+    index.ts        Cliente de Drizzle + pool de conexiones
+    seed.ts         Datos de ejemplo
+  lib/
+    posts.ts        Capa de dominio: qué significa gestionar entradas
+    http.ts         Traducción de errores del dominio a códigos HTTP
+    errors.ts       Errores del dominio (sin dependencia de HTTP)
+    slug.ts         Generación de slugs
+    validation/     Esquemas Zod de entrada
+drizzle/            Migraciones SQL generadas (se versionan en git)
 ```
+
+La regla de oro: **las rutas no contienen lógica de negocio**. Un Route Handler
+solo valida la entrada, llama a `src/lib/posts.ts` y traduce el resultado a
+HTTP. Gracias a eso, el panel de la fase 4 podrá reutilizar exactamente las
+mismas funciones sin pasar por la red.
 
 ## Modelo de datos actual
 
@@ -60,10 +73,43 @@ Es un modelo **fijo**: las entradas están definidas en código. En la fase 5 lo
 convertiremos en un modelo **dinámico**, donde el usuario define sus propios
 tipos de contenido desde el panel. Ese salto es lo que separa un blog de un CMS.
 
+## API
+
+> ⚠️ **Todavía no hay autenticación.** Cualquiera puede escribir. Se resuelve en
+> la fase 3.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/api/posts` | Lista paginada. Query: `page`, `limit` (máx. 100), `status`, `q` |
+| `POST` | `/api/posts` | Crea una entrada. Devuelve `201` + cabecera `Location` |
+| `GET` | `/api/posts/:id` | Devuelve una entrada |
+| `PATCH` | `/api/posts/:id` | Actualiza **solo** los campos enviados |
+| `DELETE` | `/api/posts/:id` | Borra. Devuelve `204` sin cuerpo |
+
+Códigos de error:
+
+| Código | Cuándo |
+|---|---|
+| `400` | El cuerpo no es JSON válido, o el id no es un UUID |
+| `404` | El recurso no existe |
+| `409` | Conflicto: el slug ya está en uso |
+| `422` | El JSON es válido pero los datos no pasan la validación (incluye `issues[]` por campo) |
+| `500` | Error inesperado (el detalle solo se registra en el servidor) |
+
+Ejemplo:
+
+```bash
+curl -X POST http://localhost:3000/api/posts \
+  -H 'content-type: application/json' \
+  -d '{"title":"¿Cómo funciona un CMS?","body":"...","status":"published"}'
+```
+
+Si no envías `slug`, se deriva del título (`como-funciona-un-cms`).
+
 ## Roadmap
 
 - [x] **Fase 1** — Andamiaje, Postgres en Docker, Drizzle, esquema inicial
-- [ ] **Fase 2** — API de contenido (CRUD) con validación (Zod)
+- [x] **Fase 2** — API de contenido (CRUD) con validación (Zod)
 - [ ] **Fase 3** — Autenticación por sesión y roles
 - [ ] **Fase 4** — Panel de administración (Server Actions)
 - [ ] **Fase 5** — Tipos de contenido dinámicos

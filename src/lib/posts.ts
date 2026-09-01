@@ -1,0 +1,137 @@
+import { and, count, desc, eq, ilike, or } from "drizzle-orm";
+
+import { db } from "@/db";
+import { posts, type Post } from "@/db/schema";
+import { conflict, notFound } from "@/lib/errors";
+import { slugify } from "@/lib/slug";
+import type {
+  CreatePostInput,
+  ListPostsQuery,
+  UpdatePostInput,
+} from "@/lib/validation/post";
+
+const PG_UNIQUE_VIOLATION = "23505";
+
+function isUniqueViolation(error: unknown): boolean {
+  let current: unknown = error;
+
+  while (current instanceof Error) {
+    if ((current as { code?: string }).code === PG_UNIQUE_VIOLATION) return true;
+    current = current.cause;
+  }
+
+  return false;
+}
+
+export type PaginatedPosts = {
+  items: Post[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export async function listPosts(query: ListPostsQuery): Promise<PaginatedPosts> {
+  const { page, limit, status, q } = query;
+
+  const filters = [
+    status ? eq(posts.status, status) : undefined,
+    q ? or(ilike(posts.title, `%${q}%`), ilike(posts.body, `%${q}%`)) : undefined,
+  ];
+  const where = and(...filters);
+
+  const [items, [totals]] = await Promise.all([
+    db
+      .select()
+      .from(posts)
+      .where(where)
+      .orderBy(desc(posts.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit),
+    db.select({ value: count() }).from(posts).where(where),
+  ]);
+
+  return {
+    items,
+    pagination: {
+      page,
+      limit,
+      total: totals.value,
+      totalPages: Math.max(1, Math.ceil(totals.value / limit)),
+    },
+  };
+}
+
+export async function getPostById(id: string): Promise<Post> {
+  const [post] = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
+  if (!post) throw notFound(`No existe ninguna entrada con id ${id}`);
+  return post;
+}
+
+export async function createPost(input: CreatePostInput): Promise<Post> {
+  const slug = input.slug ?? slugify(input.title);
+  if (!slug) {
+    throw conflict("No se pudo derivar un slug del título; envía uno explícito");
+  }
+
+  try {
+    const [created] = await db
+      .insert(posts)
+      .values({
+        title: input.title,
+        slug,
+        excerpt: input.excerpt ?? null,
+        body: input.body,
+        status: input.status,
+        authorId: input.authorId ?? null,
+        // Regla de negocio: publishedAt marca cuándo se publicó por primera vez.
+        publishedAt: input.status === "published" ? new Date() : null,
+      })
+      .returning();
+    return created;
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      throw conflict(`Ya existe una entrada con el slug "${slug}"`);
+    }
+    throw error;
+  }
+}
+
+export async function updatePost(
+  id: string,
+  input: UpdatePostInput,
+): Promise<Post> {
+  const current = await getPostById(id);
+
+  const becomesPublished =
+    input.status === "published" && current.publishedAt === null;
+
+  try {
+    const [updated] = await db
+      .update(posts)
+      .set({
+        ...input,
+        ...(becomesPublished ? { publishedAt: new Date() } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(posts.id, id))
+      .returning();
+    return updated;
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      throw conflict(`Ya existe una entrada con el slug "${input.slug}"`);
+    }
+    throw error;
+  }
+}
+
+export async function deletePost(id: string): Promise<void> {
+  const [deleted] = await db
+    .delete(posts)
+    .where(eq(posts.id, id))
+    .returning({ id: posts.id });
+
+  if (!deleted) throw notFound(`No existe ninguna entrada con id ${id}`);
+}
