@@ -1,8 +1,15 @@
-# CMS headless — proyecto de aprendizaje
+# CMS de la cafetería
 
-Un CMS headless construido desde cero para entender cómo funciona uno por
-dentro. **Headless** significa que este proyecto gestiona el contenido y lo
-expone por API; no renderiza el sitio público final (ese sería otro cliente).
+Gestor de contenido construido desde cero, que ahora sirve de base al sitio
+público de una cafetería: páginas, artículos, los cafés que se sirven y los
+eventos.
+
+El contenido se modela **desde el panel**, sin escribir código: los tipos y sus
+campos son datos, no tablas.
+
+> **Alcance.** Este repo gestiona *contenido*. El inventario, las recetas y el
+> punto de venta son un proyecto aparte y aparcado — ver
+> [docs/alcance.md](docs/alcance.md) y [docs/inventario.md](docs/inventario.md).
 
 ## Stack
 
@@ -206,3 +213,11 @@ contenido de un id nunca cambia. Se admiten imágenes y PDF de hasta 5 MB.
 - [x] **Fase 5** — Tipos de contenido dinámicos
 - [x] **Fase 6** — Publicación, media, API pública y caché
 - [x] **Migración** — `posts` absorbido por el sistema dinámico (tipo `articulo`)
+
+Siguiente, hacia el sitio de la cafetería (ver [docs/alcance.md](docs/alcance.md)):
+
+- [ ] **Fase 7** — Tipos de campo que faltan: `media`, `tags`, `richtext`
+- [ ] **Fase 8** — Relaciones entre tipos de contenido
+- [ ] **Fase 9** — Modelado del sitio: Página, Café, Producto de carta, Evento
+- [ ] **Fase 10** — El sitio público: portada, carta, artículos, ficha de café
+- [ ] **Fase 11** — Búsqueda, filtros y SEO
