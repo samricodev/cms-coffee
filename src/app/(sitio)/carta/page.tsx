@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { MediaImage } from "@/components/site/media-image";
+
 import { asText, formatMoney } from "@/lib/format";
 import { getPublicEntries } from "@/lib/public-content";
 
@@ -42,31 +44,40 @@ export default async function CartaPage() {
                 | undefined;
 
               return (
-                <li key={item.id} className="py-3">
-                  <div className="flex items-baseline gap-3">
-                    <span className="font-display text-lg">{item.title}</span>
-                    <span className="flex-1 border-b border-dotted border-line" />
-                    <span className="font-mono tabular-nums">
-                      {formatMoney(item.data.precio)}
-                    </span>
+                <li key={item.id} className="flex gap-4 py-3">
+                  <MediaImage
+                    id={item.data.foto}
+                    alt={item.title}
+                    className="aspect-square w-16 shrink-0 sm:w-20"
+                    sizes="80px"
+                  />
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-3">
+                      <span className="font-display text-lg">{item.title}</span>
+                      <span className="flex-1 border-b border-dotted border-line" />
+                      <span className="font-mono tabular-nums">
+                        {formatMoney(item.data.precio)}
+                      </span>
+                    </div>
+
+                    {asText(item.data.descripcion) ? (
+                      <p className="mt-1 max-w-prose text-sm text-muted">
+                        {asText(item.data.descripcion)}
+                      </p>
+                    ) : null}
+
+                    {cafe ? (
+                      <p className="mt-1 font-mono text-xs">
+                        <Link
+                          href={`/cafes/${cafe.slug}`}
+                          className="text-accent underline-offset-4 hover:underline"
+                        >
+                          con {cafe.title}
+                        </Link>
+                      </p>
+                    ) : null}
                   </div>
-
-                  {asText(item.data.descripcion) ? (
-                    <p className="mt-1 max-w-prose text-sm text-muted">
-                      {asText(item.data.descripcion)}
-                    </p>
-                  ) : null}
-
-                  {cafe ? (
-                    <p className="mt-1 font-mono text-xs">
-                      <Link
-                        href={`/cafes/${cafe.slug}`}
-                        className="text-accent underline-offset-4 hover:underline"
-                      >
-                        con {cafe.title}
-                      </Link>
-                    </p>
-                  ) : null}
                 </li>
               );
             })}

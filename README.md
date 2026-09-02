@@ -221,6 +221,12 @@ El proyecto usa Cache Components (`cacheComponents: true` en `next.config.ts`):
 
 ## Medios
 
+Se admiten imágenes y PDF de hasta 5 MB. Ese límite se sostiene en tres sitios y
+los tres importan: el navegador avisa antes de enviar, `createMedia` lo valida
+en el servidor, y `serverActions.bodySizeLimit` en `next.config.ts` está en
+6 MB para dejar sitio a la sobrecarga del multipart — con el valor por defecto
+de 1 MB, Next corta la petición antes de que llegue a validarse.
+
 Los archivos se guardan en `storage/media/` (fuera de `public/`, ignorado por
 git) y se sirven por `/api/media/:id` con `Cache-Control: immutable`: el
 contenido de un id nunca cambia. Se admiten imágenes y PDF de hasta 5 MB.
