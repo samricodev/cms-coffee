@@ -1,9 +1,9 @@
-import { and, count, desc, eq, ilike, or } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, ilike, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import { assertCanModifyPost } from "@/lib/auth/guards";
 import type { SessionUser } from "@/lib/auth/session";
-import { posts, type Post } from "@/db/schema";
+import { posts, users, type Post } from "@/db/schema";
 import { conflict, notFound } from "@/lib/errors";
 import { slugify } from "@/lib/slug";
 import type {
@@ -25,8 +25,10 @@ function isUniqueViolation(error: unknown): boolean {
   return false;
 }
 
+export type PostListItem = Post & { authorName: string | null };
+
 export type PaginatedPosts = {
-  items: Post[];
+  items: PostListItem[];
   pagination: {
     page: number;
     limit: number;
@@ -46,8 +48,9 @@ export async function listPosts(query: ListPostsQuery): Promise<PaginatedPosts> 
 
   const [items, [totals]] = await Promise.all([
     db
-      .select()
+      .select({ ...getTableColumns(posts), authorName: users.name })
       .from(posts)
+      .leftJoin(users, eq(users.id, posts.authorId))
       .where(where)
       .orderBy(desc(posts.createdAt))
       .limit(limit)

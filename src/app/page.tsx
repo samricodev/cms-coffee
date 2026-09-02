@@ -1,5 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 
+import Link from "next/link";
+
 import { db } from "@/db";
 import { posts } from "@/db/schema";
 
@@ -14,7 +16,12 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-2xl p-10 font-sans">
-      <h1 className="text-2xl font-semibold">CMS</h1>
+      <div className="flex items-baseline gap-3">
+        <h1 className="text-2xl font-semibold">CMS</h1>
+        <Link href="/admin" className="ml-auto text-sm hover:underline">
+          Panel →
+        </Link>
+      </div>
       <p className="mt-2 text-sm text-gray-500">
         Vista pública de prueba: solo entradas publicadas ({rows.length}).
       </p>

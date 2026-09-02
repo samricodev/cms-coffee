@@ -41,6 +41,9 @@ npm run dev                  # http://localhost:3000
 ```
 src/
   app/
+    admin/          Panel: layout con guarda de sesión, listado, editor
+      actions.ts    Server Actions (mutaciones desde formularios)
+    login/          Formulario de acceso
     api/auth/       login, logout, me
     api/posts/      Route Handlers: la capa HTTP (delgada)
     api/users/      Gestión de cuentas (solo admin)
@@ -59,7 +62,9 @@ src/
       password.ts   Hash y verificación con argon2id
       session.ts    Sesiones en base de datos + cookie
       guards.ts     requireUser / requireAdmin / propiedad del contenido
+    form.ts         Estado de formulario para Server Actions
     validation/     Esquemas Zod de entrada
+  components/       Formularios de cliente y piezas de UI
 drizzle/            Migraciones SQL generadas (se versionan en git)
 ```
 
@@ -84,6 +89,21 @@ todas y además las cuentas.
 Es un modelo **fijo**: las entradas están definidas en código. En la fase 5 lo
 convertiremos en un modelo **dinámico**, donde el usuario define sus propios
 tipos de contenido desde el panel. Ese salto es lo que separa un blog de un CMS.
+
+## Panel
+
+| Ruta | Qué es |
+|---|---|
+| `/login` | Acceso; redirige a `/admin` si ya hay sesión |
+| `/admin` | Listado con búsqueda, filtro por estado y paginación |
+| `/admin/posts/new` | Crear entrada |
+| `/admin/posts/:id` | Editar, publicar o borrar (solo lectura si es de otro autor) |
+| `/admin/users` | Cuentas (solo `admin`) |
+| `/` | Vista pública de prueba: solo entradas publicadas |
+
+El panel **no llama a la API**: las páginas leen de `src/lib/*` en el servidor y
+los formularios mutan con Server Actions. La API REST existe para clientes
+externos, que es la razón de ser de un CMS headless.
 
 ## API
 
@@ -143,6 +163,6 @@ Si no envías `slug`, se deriva del título (`como-funciona-un-cms`).
 - [x] **Fase 1** — Andamiaje, Postgres en Docker, Drizzle, esquema inicial
 - [x] **Fase 2** — API de contenido (CRUD) con validación (Zod)
 - [x] **Fase 3** — Autenticación por sesión y roles
-- [ ] **Fase 4** — Panel de administración (Server Actions)
+- [x] **Fase 4** — Panel de administración (Server Actions)
 - [ ] **Fase 5** — Tipos de contenido dinámicos
 - [ ] **Fase 6** — Publicación, media, API pública y caché
