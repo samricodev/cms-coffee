@@ -23,7 +23,7 @@ import {
 import { assertCanModify } from "@/lib/auth/guards";
 import type { SessionUser } from "@/lib/auth/session";
 import { conflict, notFound } from "@/lib/errors";
-import { contentTag } from "@/lib/public-content";
+import { REFERENCES_TAG, contentTag } from "@/lib/public-content";
 import { slugify } from "@/lib/slug";
 import {
   buildEntryDataSchema,
@@ -137,6 +137,7 @@ export async function createEntry(
       .returning();
 
     revalidateTag(contentTag(type.apiId), "max");
+    revalidateTag(REFERENCES_TAG, "max");
     return created;
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -186,6 +187,7 @@ export async function updateEntry(
       .returning();
 
     revalidateTag(contentTag(type.apiId), "max");
+    revalidateTag(REFERENCES_TAG, "max");
     return updated;
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -262,4 +264,5 @@ export async function deleteEntry(
 
   await db.delete(entries).where(eq(entries.id, id));
   revalidateTag(contentTag(type.apiId), "max");
+  revalidateTag(REFERENCES_TAG, "max");
 }

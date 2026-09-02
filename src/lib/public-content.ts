@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNotNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, lte, or, sql } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
@@ -12,6 +12,7 @@ import { attachExpansion, resolveRelations, type ExpandedEntry } from "@/lib/rel
 
 export const contentTag = (apiId: string) => `content:${apiId}`;
 export const TYPES_TAG = "content-types";
+export const REFERENCES_TAG = "references";
 
 export type PublicEntry = {
   id: string;
@@ -142,4 +143,82 @@ export async function getPublicEntry(
   return resolved.size === 0
     ? entry
     : attachExpansion(type, entry, resolved, "all");
+}
+
+export type PublicReference = {
+  id: string;
+  title: string;
+  slug: string;
+  typeApiId: string;
+  typeName: string;
+  data: Record<string, unknown>;
+};
+
+export async function getPublicReferences(
+  entryId: string,
+): Promise<PublicReference[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(REFERENCES_TAG);
+
+  const relations = await db
+    .select()
+    .from(contentFields)
+    .where(eq(contentFields.type, "relation"));
+
+  if (relations.length === 0) return [];
+
+  const matches = relations.map((field) =>
+    and(
+      eq(entries.contentTypeId, field.contentTypeId),
+      sql`${entries.data} @> ${JSON.stringify(
+        field.multiple ? { [field.apiKey]: [entryId] } : { [field.apiKey]: entryId },
+      )}::jsonb`,
+    ),
+  );
+
+  return db
+    .select({
+      id: entries.id,
+      title: entries.title,
+      slug: entries.slug,
+      data: entries.data,
+      typeApiId: contentTypes.apiId,
+      typeName: contentTypes.name,
+    })
+    .from(entries)
+    .innerJoin(contentTypes, eq(contentTypes.id, entries.contentTypeId))
+    .where(
+      and(
+        or(...matches),
+        eq(entries.status, "published"),
+        isNotNull(entries.publishedAt),
+        lte(entries.publishedAt, new Date()),
+      ),
+    )
+    .orderBy(desc(entries.publishedAt))
+    .limit(20);
+}
+
+export async function getEvents(): Promise<{
+  proximos: PublicEntry[];
+  pasados: PublicEntry[];
+}> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(contentTag("evento"));
+
+  const eventos = await getPublicEntries("evento", 100);
+  const hoy = new Date().toISOString().slice(0, 10);
+  const fecha = (entry: PublicEntry) =>
+    typeof entry.data.fecha === "string" ? entry.data.fecha : "";
+
+  return {
+    proximos: eventos
+      .filter((evento) => fecha(evento) >= hoy)
+      .sort((a, b) => fecha(a).localeCompare(fecha(b))),
+    pasados: eventos
+      .filter((evento) => fecha(evento) < hoy)
+      .sort((a, b) => fecha(b).localeCompare(fecha(a))),
+  };
 }

@@ -107,6 +107,21 @@ Todo el contenido vive en **un solo sistema**, definido por datos:
 No hay tablas por tipo de contenido: crear "Producto" no genera una migración,
 inserta filas en `content_types` y `content_fields`.
 
+## Sitio público
+
+| Ruta | Qué muestra |
+|---|---|
+| `/` | Artículo destacado, café del mes, cafés, carta y próximas catas |
+| `/carta` | La carta agrupada por categoría |
+| `/cafes` · `/cafes/:slug` | Los orígenes y su ficha completa, con dónde aparecen |
+| `/articulos` · `/articulos/:slug` | El diario, con el Markdown renderizado |
+| `/eventos` | Agenda, separando próximos de pasados |
+| `/:slug` | Páginas sueltas (`/quienes-somos`, `/como-llegar`) |
+
+Las páginas leen de `src/lib/public-content.ts`, que está cacheado, así que se
+prerenderizan y se revalidan solas. El nombre del sitio y el menú se cambian en
+`src/lib/site.ts`.
+
 ## Panel
 
 | Ruta | Qué es |
@@ -220,5 +235,5 @@ Siguiente, hacia el sitio de la cafetería (ver [docs/alcance.md](docs/alcance.m
 - [x] **Fase 7** — Tipos de campo `media`, `tags` y `richtext`, y reordenar campos
 - [x] **Fase 8** — Relaciones entre tipos, con expansión e integridad referencial
 - [x] **Fase 9** — Modelado del sitio: Página, Café, Producto, Evento, y SEO por entrada
-- [ ] **Fase 10** — El sitio público: portada, carta, artículos, ficha de café
+- [x] **Fase 10** — El sitio público: portada, carta, cafés, diario, eventos y páginas
 - [ ] **Fase 11** — Búsqueda, filtros y SEO
