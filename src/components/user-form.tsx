@@ -6,7 +6,7 @@ import { createUserAction } from "@/app/admin/actions";
 import { FieldError, FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { input, label } from "@/components/ui";
-import { idleForm, issueOf } from "@/lib/form";
+import { idleForm, issueOf, valueOf } from "@/lib/form";
 
 export function UserForm() {
   const [state, action] = useActionState(createUserAction, idleForm);
@@ -20,7 +20,13 @@ export function UserForm() {
           <label className={label} htmlFor="name">
             Nombre
           </label>
-          <input className={input} id="name" name="name" required />
+          <input
+            className={input}
+            id="name"
+            name="name"
+            defaultValue={valueOf(state, "name")}
+            required
+          />
           <FieldError message={issueOf(state, "name")} />
         </div>
 
@@ -33,6 +39,7 @@ export function UserForm() {
             id="new-email"
             name="email"
             type="email"
+            defaultValue={valueOf(state, "email")}
             required
           />
           <FieldError message={issueOf(state, "email")} />
@@ -57,7 +64,12 @@ export function UserForm() {
           <label className={label} htmlFor="role">
             Rol
           </label>
-          <select className={input} id="role" name="role" defaultValue="editor">
+          <select
+            className={input}
+            id="role"
+            name="role"
+            defaultValue={valueOf(state, "role", "editor")}
+          >
             <option value="editor">Editor</option>
             <option value="admin">Administrador</option>
           </select>

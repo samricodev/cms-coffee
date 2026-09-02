@@ -3,12 +3,15 @@ import { redirect } from "next/navigation";
 
 import { logoutAction } from "@/app/admin/actions";
 import { getSessionUser } from "@/lib/auth/session";
+import { listContentTypes } from "@/lib/content-types";
 
 export const metadata = { title: "Panel · CMS" };
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
+
+  const types = await listContentTypes();
 
   return (
     <div className="flex min-h-full flex-col">
@@ -18,8 +21,22 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             CMS
           </Link>
           <Link href="/admin" className="hover:underline">
-            Contenido
+            Entradas
           </Link>
+          {types.map((type) => (
+            <Link
+              key={type.id}
+              href={`/admin/content/${type.apiId}`}
+              className="hover:underline"
+            >
+              {type.name}
+            </Link>
+          ))}
+          {user.role === "admin" ? (
+            <Link href="/admin/types" className="hover:underline">
+              Tipos
+            </Link>
+          ) : null}
           {user.role === "admin" ? (
             <Link href="/admin/users" className="hover:underline">
               Usuarios

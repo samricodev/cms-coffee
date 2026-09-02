@@ -15,7 +15,7 @@ export async function requireAdmin(): Promise<SessionUser> {
   return user;
 }
 
-export function assertCanModifyPost(
+export function assertCanModify(
   user: SessionUser,
   post: { authorId: string | null },
 ): void {

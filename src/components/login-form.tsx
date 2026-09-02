@@ -6,7 +6,7 @@ import { loginAction } from "@/app/admin/actions";
 import { FieldError, FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { input, label } from "@/components/ui";
-import { idleForm, issueOf } from "@/lib/form";
+import { idleForm, issueOf, valueOf } from "@/lib/form";
 
 export function LoginForm() {
   const [state, action] = useActionState(loginAction, idleForm);
@@ -25,7 +25,7 @@ export function LoginForm() {
           name="email"
           type="email"
           autoComplete="username"
-          defaultValue="admin@cms.local"
+          defaultValue={valueOf(state, "email", "admin@cms.local")}
           required
         />
         <FieldError message={issueOf(state, "email")} />

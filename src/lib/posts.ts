@@ -1,7 +1,7 @@
 import { and, count, desc, eq, getTableColumns, ilike, or } from "drizzle-orm";
 
 import { db } from "@/db";
-import { assertCanModifyPost } from "@/lib/auth/guards";
+import { assertCanModify } from "@/lib/auth/guards";
 import type { SessionUser } from "@/lib/auth/session";
 import { posts, users, type Post } from "@/db/schema";
 import { conflict, notFound } from "@/lib/errors";
@@ -113,7 +113,7 @@ export async function updatePost(
   actor: SessionUser,
 ): Promise<Post> {
   const current = await getPostById(id);
-  assertCanModifyPost(actor, current);
+  assertCanModify(actor, current);
 
   const becomesPublished =
     input.status === "published" && current.publishedAt === null;
@@ -139,7 +139,7 @@ export async function updatePost(
 
 export async function deletePost(id: string, actor: SessionUser): Promise<void> {
   const current = await getPostById(id);
-  assertCanModifyPost(actor, current);
+  assertCanModify(actor, current);
 
   await db.delete(posts).where(eq(posts.id, id));
 }

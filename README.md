@@ -98,6 +98,9 @@ tipos de contenido desde el panel. Ese salto es lo que separa un blog de un CMS.
 | `/admin` | Listado con búsqueda, filtro por estado y paginación |
 | `/admin/posts/new` | Crear entrada |
 | `/admin/posts/:id` | Editar, publicar o borrar (solo lectura si es de otro autor) |
+| `/admin/types` · `/admin/types/:id` | Modelar tipos de contenido y sus campos (solo `admin`) |
+| `/admin/content/:tipo` | Entradas de un tipo dinámico |
+| `/admin/content/:tipo/new` · `/:id` | Formulario generado a partir de los campos del tipo |
 | `/admin/users` | Cuentas (solo `admin`) |
 | `/` | Vista pública de prueba: solo entradas publicadas |
 
@@ -158,11 +161,41 @@ curl -X POST http://localhost:3000/api/posts \
 
 Si no envías `slug`, se deriva del título (`como-funciona-un-cms`).
 
+## Tipos de contenido dinámicos
+
+El modelo fijo (`posts`) sigue ahí para comparar, pero el contenido nuevo se
+define **desde el panel**, sin escribir código ni generar migraciones:
+
+- `content_types` — un tipo (Producto, Evento) con su `api_id`
+- `content_fields` — los campos de ese tipo (etiqueta, clave, tipo, obligatorio)
+- `entries` — las entradas, con los valores en una columna `jsonb`
+
+El esquema de validación se **construye en tiempo de ejecución** a partir de las
+definiciones de campo, así que la API y el formulario del panel salen los dos de
+la misma fuente.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/api/content-types` | Tipos definidos, con sus campos |
+| `GET` | `/api/content/:tipo` | Entradas del tipo (paginación, `status`, `q`) |
+| `POST` | `/api/content/:tipo` | Crea una entrada (`{title, slug?, status?, data}`) |
+| `GET` | `/api/content/:tipo/:id` | Una entrada |
+| `PATCH` | `/api/content/:tipo/:id` | Actualiza; `data` se fusiona, no se reemplaza |
+| `DELETE` | `/api/content/:tipo/:id` | Borra |
+
+```bash
+curl -b cookies.txt -X POST http://localhost:3000/api/content/producto \
+  -H 'content-type: application/json' \
+  -d '{"title":"Camiseta","data":{"precio":19.9,"categoria":"camisetas"}}'
+```
+
+El slug es único **por tipo**: un producto y un evento pueden compartirlo.
+
 ## Roadmap
 
 - [x] **Fase 1** — Andamiaje, Postgres en Docker, Drizzle, esquema inicial
 - [x] **Fase 2** — API de contenido (CRUD) con validación (Zod)
 - [x] **Fase 3** — Autenticación por sesión y roles
 - [x] **Fase 4** — Panel de administración (Server Actions)
-- [ ] **Fase 5** — Tipos de contenido dinámicos
+- [x] **Fase 5** — Tipos de contenido dinámicos
 - [ ] **Fase 6** — Publicación, media, API pública y caché

@@ -1,4 +1,7 @@
 import {
+  boolean,
+  integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -10,6 +13,14 @@ import {
 
 export const userRole = pgEnum("user_role", ["admin", "editor"]);
 export const postStatus = pgEnum("post_status", ["draft", "published"]);
+export const fieldType = pgEnum("field_type", [
+  "text",
+  "textarea",
+  "number",
+  "boolean",
+  "date",
+  "select",
+]);
 
 export const users = pgTable(
   "users",
@@ -64,8 +75,76 @@ export const sessions = pgTable(
   },
   (table) => [uniqueIndex("sessions_token_hash_idx").on(table.tokenHash)],
 );
+export const contentTypes = pgTable(
+  "content_types",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    apiId: text("api_id").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [uniqueIndex("content_types_api_id_idx").on(table.apiId)],
+);
+
+export const contentFields = pgTable(
+  "content_fields",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    contentTypeId: uuid("content_type_id")
+      .notNull()
+      .references(() => contentTypes.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    apiKey: text("api_key").notNull(),
+    type: fieldType("type").notNull(),
+    required: boolean("required").notNull().default(false),
+    position: integer("position").notNull().default(0),
+    choices: jsonb("choices").$type<string[]>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("content_fields_key_idx").on(table.contentTypeId, table.apiKey),
+  ],
+);
+
+export const entries = pgTable(
+  "entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    contentTypeId: uuid("content_type_id")
+      .notNull()
+      .references(() => contentTypes.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    slug: text("slug").notNull(),
+    status: postStatus("status").notNull().default("draft"),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull().default({}),
+    authorId: uuid("author_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("entries_type_slug_idx").on(table.contentTypeId, table.slug),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
+export type ContentType = typeof contentTypes.$inferSelect;
+export type ContentField = typeof contentFields.$inferSelect;
+export type FieldType = ContentField["type"];
+export type Entry = typeof entries.$inferSelect;
+export type ContentTypeWithFields = ContentType & { fields: ContentField[] };
 export type Session = typeof sessions.$inferSelect;

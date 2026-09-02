@@ -13,7 +13,26 @@ import {
 import { requireAdmin, requireUser } from "@/lib/auth/guards";
 import { authenticate, createUser } from "@/lib/users";
 import { createPost, deletePost, updatePost } from "@/lib/posts";
-import { toFormState, type FormState } from "@/lib/form";
+import {
+  addField,
+  createContentType,
+  deleteContentType,
+  deleteField,
+  getContentTypeByApiId,
+} from "@/lib/content-types";
+import {
+  createEntry,
+  deleteEntry,
+  entryDataSchema,
+  updateEntry,
+} from "@/lib/entries";
+import type { ContentField } from "@/db/schema";
+import {
+  createContentTypeSchema,
+  createFieldSchema,
+  entryBaseSchema,
+} from "@/lib/validation/content";
+import { formValues, toFormState, type FormState } from "@/lib/form";
 import { createUserSchema, loginSchema } from "@/lib/validation/auth";
 import { createPostSchema, updatePostSchema } from "@/lib/validation/post";
 
@@ -39,7 +58,7 @@ export async function loginAction(
     const { token, expiresAt } = await createSession(user.id);
     (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
   } catch (error) {
-    return toFormState(error);
+    return toFormState(error, formValues(formData));
   }
 
   redirect("/admin");
@@ -73,7 +92,7 @@ export async function createPostAction(
     id = (await createPost(input, actor)).id;
     refresh("/admin", "/");
   } catch (error) {
-    return toFormState(error);
+    return toFormState(error, formValues(formData));
   }
 
   redirect(`/admin/posts/${id}`);
@@ -99,7 +118,7 @@ export async function updatePostAction(
     refresh("/admin", `/admin/posts/${id}`, "/");
     return { status: "success", message: "Guardado" };
   } catch (error) {
-    return toFormState(error);
+    return toFormState(error, formValues(formData));
   }
 }
 
@@ -128,6 +147,154 @@ export async function createUserAction(
     refresh("/admin/users");
     return { status: "success", message: `Cuenta creada para ${input.email}` };
   } catch (error) {
-    return toFormState(error);
+    return toFormState(error, formValues(formData));
   }
+}
+
+function readEntryData(
+  fields: ContentField[],
+  formData: FormData,
+): Record<string, unknown> {
+  const raw: Record<string, unknown> = {};
+
+  for (const field of fields) {
+    if (field.type === "boolean") {
+      raw[field.apiKey] = formData.get(field.apiKey) !== null;
+      continue;
+    }
+
+    const value = text(formData, field.apiKey).trim();
+    if (value !== "") raw[field.apiKey] = value;
+  }
+
+  return raw;
+}
+
+export async function createContentTypeAction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  let id: string;
+
+  try {
+    await requireAdmin();
+
+    const input = createContentTypeSchema.parse({
+      name: text(formData, "name"),
+      apiId: text(formData, "apiId"),
+      description: text(formData, "description") || undefined,
+    });
+
+    id = (await createContentType(input)).id;
+    refresh("/admin", "/admin/types");
+  } catch (error) {
+    return toFormState(error, formValues(formData));
+  }
+
+  redirect(`/admin/types/${id}`);
+}
+
+export async function deleteContentTypeAction(id: string) {
+  await requireAdmin();
+  await deleteContentType(id);
+  refresh("/admin", "/admin/types");
+  redirect("/admin/types");
+}
+
+export async function addFieldAction(
+  contentTypeId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin();
+
+    const choices = text(formData, "choices")
+      .split(",")
+      .map((choice) => choice.trim())
+      .filter(Boolean);
+
+    const input = createFieldSchema.parse({
+      label: text(formData, "label"),
+      apiKey: text(formData, "apiKey"),
+      type: text(formData, "type"),
+      required: formData.get("required") !== null,
+      choices,
+    });
+
+    await addField(contentTypeId, input);
+    refresh("/admin/types", `/admin/types/${contentTypeId}`);
+    return { status: "success", message: `Campo "${input.label}" añadido` };
+  } catch (error) {
+    return toFormState(error, formValues(formData));
+  }
+}
+
+export async function deleteFieldAction(contentTypeId: string, fieldId: string) {
+  await requireAdmin();
+  await deleteField(contentTypeId, fieldId);
+  refresh("/admin/types", `/admin/types/${contentTypeId}`);
+}
+
+export async function createEntryAction(
+  apiId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  let id: string;
+
+  try {
+    const actor = await requireUser();
+    const type = await getContentTypeByApiId(apiId);
+
+    const slug = text(formData, "slug").trim();
+    const base = entryBaseSchema.parse({
+      title: text(formData, "title"),
+      slug: slug === "" ? undefined : slug,
+      status: text(formData, "status"),
+    });
+
+    const data = entryDataSchema(type).parse(readEntryData(type.fields, formData));
+
+    id = (await createEntry(type, base, data, actor)).id;
+    refresh("/admin", `/admin/content/${apiId}`);
+  } catch (error) {
+    return toFormState(error, formValues(formData));
+  }
+
+  redirect(`/admin/content/${apiId}/${id}`);
+}
+
+export async function updateEntryAction(
+  apiId: string,
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    const actor = await requireUser();
+    const type = await getContentTypeByApiId(apiId);
+
+    const base = entryBaseSchema.parse({
+      title: text(formData, "title"),
+      slug: text(formData, "slug"),
+      status: text(formData, "status"),
+    });
+
+    const data = entryDataSchema(type).parse(readEntryData(type.fields, formData));
+
+    await updateEntry(type, id, base, data, actor);
+    refresh("/admin", `/admin/content/${apiId}`, `/admin/content/${apiId}/${id}`);
+    return { status: "success", message: "Guardado" };
+  } catch (error) {
+    return toFormState(error, formValues(formData));
+  }
+}
+
+export async function deleteEntryAction(apiId: string, id: string) {
+  const actor = await requireUser();
+  const type = await getContentTypeByApiId(apiId);
+  await deleteEntry(type, id, actor);
+  refresh("/admin", `/admin/content/${apiId}`);
+  redirect(`/admin/content/${apiId}`);
 }

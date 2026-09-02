@@ -6,7 +6,7 @@ import { deletePostAction, updatePostAction } from "@/app/admin/actions";
 import { PostForm } from "@/components/post-form";
 import { SubmitButton } from "@/components/submit-button";
 import { danger, secondary } from "@/components/ui";
-import { assertCanModifyPost } from "@/lib/auth/guards";
+import { assertCanModify } from "@/lib/auth/guards";
 import { requireUser } from "@/lib/auth/guards";
 import { AppError } from "@/lib/errors";
 import { getPostById } from "@/lib/posts";
@@ -26,7 +26,7 @@ export default async function EditPostPage({
 
   let canModify = true;
   try {
-    assertCanModifyPost(user, post);
+    assertCanModify(user, post);
   } catch {
     canModify = false;
   }
