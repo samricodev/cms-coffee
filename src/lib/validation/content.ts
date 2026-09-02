@@ -66,7 +66,15 @@ const entryFields = {
   status: z.enum(["draft", "published"]),
   publishedAt: z.iso
     .datetime({ local: true, offset: true })
-    .or(z.literal("").transform(() => undefined)),
+    .or(z.literal("").transform(() => null)),
+  seoDescription: z
+    .string()
+    .trim()
+    .max(200, "La metadescripción no debería pasar de 200 caracteres")
+    .or(z.literal("").transform(() => null)),
+  seoImageId: z
+    .uuid("Selecciona una imagen de la biblioteca")
+    .or(z.literal("").transform(() => null)),
 };
 
 export const entryBaseSchema = z.object({
@@ -74,6 +82,8 @@ export const entryBaseSchema = z.object({
   slug: entryFields.slug.optional(),
   status: entryFields.status.default("draft"),
   publishedAt: entryFields.publishedAt.optional(),
+  seoDescription: entryFields.seoDescription.optional(),
+  seoImageId: entryFields.seoImageId.optional(),
 });
 
 export const updateEntryBaseSchema = z.object(entryFields).partial();

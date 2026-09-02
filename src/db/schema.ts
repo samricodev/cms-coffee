@@ -113,6 +113,10 @@ export const entries = pgTable(
     authorId: uuid("author_id").references(() => users.id, {
       onDelete: "set null",
     }),
+    seoDescription: text("seo_description"),
+    seoImageId: uuid("seo_image_id").references(() => media.id, {
+      onDelete: "set null",
+    }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

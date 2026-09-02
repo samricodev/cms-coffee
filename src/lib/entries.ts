@@ -126,6 +126,8 @@ export async function createEntry(
         status: base.status,
         data,
         authorId: actor.id,
+        seoDescription: base.seoDescription ?? null,
+        seoImageId: base.seoImageId ?? null,
         publishedAt: base.publishedAt
           ? new Date(base.publishedAt)
           : base.status === "published"
@@ -155,10 +157,20 @@ export async function updateEntry(
   assertCanModify(actor, current);
 
   const { publishedAt, ...fields } = base;
-  const scheduled = publishedAt ? new Date(publishedAt) : undefined;
+
+  // undefined = no se envió el campo, no lo toques.
+  // null = se envió vacío, bórralo.
+  const scheduled =
+    publishedAt === undefined
+      ? undefined
+      : publishedAt === null
+        ? null
+        : new Date(publishedAt);
 
   const becomesPublished =
-    base.status === "published" && current.publishedAt === null && !scheduled;
+    base.status === "published" &&
+    current.publishedAt === null &&
+    scheduled === undefined;
 
   try {
     const [updated] = await db
@@ -166,7 +178,7 @@ export async function updateEntry(
       .set({
         ...fields,
         data,
-        ...(scheduled ? { publishedAt: scheduled } : {}),
+        ...(scheduled !== undefined ? { publishedAt: scheduled } : {}),
         ...(becomesPublished ? { publishedAt: new Date() } : {}),
         updatedAt: new Date(),
       })

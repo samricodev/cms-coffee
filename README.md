@@ -100,8 +100,8 @@ Todo el contenido vive en **un solo sistema**, definido por datos:
 - **content_fields** — los campos de cada tipo (`label`, `api_key`, `type`,
   `required`, `choices`)
 - **entries** — las entradas: `title`, `slug`, `status`, `published_at`,
-  `author_id` y los valores de los campos en una columna `data jsonb`.
-  El slug es único **por tipo**
+  `author_id`, `seo_description`, `seo_image_id` y los valores de los campos en
+  una columna `data jsonb`. El slug es único **por tipo**
 - **media** — archivos subidos (`filename`, `mime_type`, `size`, `storage_key`)
 
 No hay tablas por tipo de contenido: crear "Producto" no genera una migración,
@@ -219,6 +219,6 @@ Siguiente, hacia el sitio de la cafetería (ver [docs/alcance.md](docs/alcance.m
 
 - [x] **Fase 7** — Tipos de campo `media`, `tags` y `richtext`, y reordenar campos
 - [x] **Fase 8** — Relaciones entre tipos, con expansión e integridad referencial
-- [ ] **Fase 9** — Modelado del sitio: Página, Café, Producto de carta, Evento
+- [x] **Fase 9** — Modelado del sitio: Página, Café, Producto, Evento, y SEO por entrada
 - [ ] **Fase 10** — El sitio público: portada, carta, artículos, ficha de café
 - [ ] **Fase 11** — Búsqueda, filtros y SEO

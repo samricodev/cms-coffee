@@ -18,6 +18,8 @@ export type PublicEntry = {
   title: string;
   slug: string;
   publishedAt: Date | null;
+  seoDescription: string | null;
+  seoImageId: string | null;
   data: Record<string, unknown>;
   expanded?: Record<string, ExpandedEntry | ExpandedEntry[] | null>;
 };
@@ -73,6 +75,8 @@ export async function getPublicEntries(
       title: entries.title,
       slug: entries.slug,
       publishedAt: entries.publishedAt,
+      seoDescription: entries.seoDescription,
+      seoImageId: entries.seoImageId,
       data: entries.data,
     })
     .from(entries)
@@ -113,6 +117,8 @@ export async function getPublicEntry(
       title: entries.title,
       slug: entries.slug,
       publishedAt: entries.publishedAt,
+      seoDescription: entries.seoDescription,
+      seoImageId: entries.seoImageId,
       data: entries.data,
     })
     .from(entries)

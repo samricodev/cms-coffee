@@ -243,6 +243,8 @@ export async function createEntryAction(
       slug: slug === "" ? undefined : slug,
       status: text(formData, "status"),
       publishedAt: text(formData, "publishedAt"),
+      seoDescription: text(formData, "seoDescription"),
+      seoImageId: text(formData, "seoImageId"),
     });
 
     const data = entryDataSchema(type).parse(readEntryData(type.fields, formData));
@@ -271,6 +273,8 @@ export async function updateEntryAction(
       slug: text(formData, "slug"),
       status: text(formData, "status"),
       publishedAt: text(formData, "publishedAt"),
+      seoDescription: text(formData, "seoDescription"),
+      seoImageId: text(formData, "seoImageId"),
     });
 
     const data = entryDataSchema(type).parse(readEntryData(type.fields, formData));

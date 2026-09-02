@@ -263,6 +263,48 @@ export function EntryForm({
         <FieldError message={issueOf(state, "publishedAt")} />
       </div>
 
+      <details className="rounded-md border border-black/10 p-3 dark:border-white/15">
+        <summary className="cursor-pointer text-sm font-medium">
+          SEO y compartición
+        </summary>
+
+        <div className="mt-4 space-y-4">
+          <div>
+            <label className={label} htmlFor="seoDescription">
+              Metadescripción
+            </label>
+            <textarea
+              className={`${input} min-h-20`}
+              id="seoDescription"
+              name="seoDescription"
+              maxLength={200}
+              defaultValue={valueOf(
+                state,
+                "seoDescription",
+                entry?.seoDescription ?? "",
+              )}
+            />
+            <p className="mt-1 text-xs text-black/60 dark:text-white/60">
+              El texto que aparece bajo el título en Google. Hasta 200
+              caracteres; vacío lo borra.
+            </p>
+            <FieldError message={issueOf(state, "seoDescription")} />
+          </div>
+
+          <div>
+            <label className={label} htmlFor="seoImageId">
+              Imagen para compartir
+            </label>
+            <MediaPicker
+              id="seoImageId"
+              name="seoImageId"
+              defaultValue={valueOf(state, "seoImageId", entry?.seoImageId ?? "")}
+            />
+            <FieldError message={issueOf(state, "seoImageId")} />
+          </div>
+        </div>
+      </details>
+
       <SubmitButton>{submitLabel}</SubmitButton>
     </form>
   );
