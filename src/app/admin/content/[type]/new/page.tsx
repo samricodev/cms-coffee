@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth/guards";
 import { getContentTypeByApiId } from "@/lib/content-types";
 import { AppError } from "@/lib/errors";
 
+export const instant = false;
+
 export default async function NewEntryPage({
   params,
 }: PageProps<"/admin/content/[type]/new">) {

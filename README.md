@@ -41,66 +41,75 @@ npm run dev                  # http://localhost:3000
 ```
 src/
   app/
-    admin/          Panel: layout con guarda de sesión, listado, editor
-      actions.ts    Server Actions (mutaciones desde formularios)
-    login/          Formulario de acceso
-    api/auth/       login, logout, me
-    api/posts/      Route Handlers: la capa HTTP (delgada)
-    api/users/      Gestión de cuentas (solo admin)
-    page.tsx        Portada de prueba
+    admin/            Panel (todas las páginas con `instant = false`)
+      actions.ts      Server Actions: mutaciones desde formularios
+      content/[type]/ Entradas de un tipo dinámico
+      types/          Modelado de tipos y campos
+      media/ users/   Biblioteca de archivos y cuentas
+    login/            Formulario de acceso
+    api/auth/         login, logout, me
+    api/content/      API de gestión (requiere sesión)
+    api/content-types/  Tipos y sus campos
+    api/public/       API pública: solo contenido publicado
+    api/media/[id]/   Servicio de archivos
+    api/users/        Cuentas (solo admin)
+    page.tsx          Sitio público de prueba (estático, cacheado)
   db/
-    schema.ts       Definición de tablas: la fuente de verdad del modelo
-    index.ts        Cliente de Drizzle + pool de conexiones
-    seed.ts         Datos de ejemplo
+    schema.ts         Definición de tablas: la fuente de verdad del modelo
+    index.ts          Cliente de Drizzle + pool de conexiones
+    seed.ts           Datos de ejemplo (idempotente)
   lib/
-    posts.ts        Capa de dominio: qué significa gestionar entradas
-    users.ts        Alta de usuarios y verificación de credenciales
-    http.ts         Traducción de errores del dominio a códigos HTTP
-    errors.ts       Errores del dominio (sin dependencia de HTTP)
-    slug.ts         Generación de slugs
+    content-types.ts  Dominio: tipos y campos
+    entries.ts        Dominio: entradas + invalidación de caché
+    public-content.ts Consultas cacheadas del contenido publicado
+    media.ts          Subida, lectura y borrado de archivos
+    users.ts          Alta de usuarios y verificación de credenciales
+    http.ts           Traducción de errores del dominio a códigos HTTP
+    errors.ts         Errores del dominio (sin dependencia de HTTP)
+    form.ts           Estado de formulario para Server Actions
+    slug.ts           Generación de slugs
     auth/
-      password.ts   Hash y verificación con argon2id
-      session.ts    Sesiones en base de datos + cookie
-      guards.ts     requireUser / requireAdmin / propiedad del contenido
-    form.ts         Estado de formulario para Server Actions
-    validation/     Esquemas Zod de entrada
-  components/       Formularios de cliente y piezas de UI
-drizzle/            Migraciones SQL generadas (se versionan en git)
+      password.ts     Hash y verificación con argon2id
+      session.ts      Sesiones en base de datos + cookie
+      guards.ts       requireUser / requireAdmin / propiedad del contenido
+    validation/       Esquemas Zod (incluido el dinámico por tipo)
+  components/         Formularios de cliente y piezas de UI
+drizzle/              Migraciones SQL, incluidas las de datos
+storage/media/        Archivos subidos (fuera de git)
 ```
 
 La regla de oro: **las rutas no contienen lógica de negocio**. Un Route Handler
-solo valida la entrada, llama a `src/lib/posts.ts` y traduce el resultado a
-HTTP. Gracias a eso, el panel de la fase 4 podrá reutilizar exactamente las
-mismas funciones sin pasar por la red.
+valida la entrada, llama a `src/lib/*` y traduce el resultado a HTTP. El panel
+usa esas mismas funciones desde Server Actions, sin pasar por la red.
 
-## Modelo de datos actual
+## Modelo de datos
 
-- **users** — `id`, `email` (único), `name`, `password_hash` (argon2id), `role`
-  (`admin` | `editor`), `created_at`
-- **sessions** — `id`, `token_hash` (único), `user_id` → users (cascade),
-  `expires_at`, `created_at`
-- **posts** — `id`, `title`, `slug` (único), `excerpt`, `body`, `status`
-  (`draft` | `published`), `author_id` → users, `published_at`, `created_at`,
-  `updated_at`
+Todo el contenido vive en **un solo sistema**, definido por datos:
 
-Permisos: un `editor` gestiona **sus propias** entradas; un `admin` gestiona
-todas y además las cuentas.
+- **users** — `id`, `email` (único), `name`, `password_hash`, `role`
+  (`admin` | `editor`)
+- **sessions** — `token_hash` (único), `user_id`, `expires_at`
+- **content_types** — un tipo (Artículo, Producto…) con su `api_id` único
+- **content_fields** — los campos de cada tipo (`label`, `api_key`, `type`,
+  `required`, `choices`)
+- **entries** — las entradas: `title`, `slug`, `status`, `published_at`,
+  `author_id` y los valores de los campos en una columna `data jsonb`.
+  El slug es único **por tipo**
+- **media** — archivos subidos (`filename`, `mime_type`, `size`, `storage_key`)
 
-Es un modelo **fijo**: las entradas están definidas en código. En la fase 5 lo
-convertiremos en un modelo **dinámico**, donde el usuario define sus propios
-tipos de contenido desde el panel. Ese salto es lo que separa un blog de un CMS.
+No hay tablas por tipo de contenido: crear "Producto" no genera una migración,
+inserta filas en `content_types` y `content_fields`.
 
 ## Panel
 
 | Ruta | Qué es |
 |---|---|
 | `/login` | Acceso; redirige a `/admin` si ya hay sesión |
-| `/admin` | Listado con búsqueda, filtro por estado y paginación |
-| `/admin/posts/new` | Crear entrada |
-| `/admin/posts/:id` | Editar, publicar o borrar (solo lectura si es de otro autor) |
+| `/admin` | Resumen de tipos de contenido con sus contadores |
 | `/admin/types` · `/admin/types/:id` | Modelar tipos de contenido y sus campos (solo `admin`) |
 | `/admin/content/:tipo` | Entradas de un tipo dinámico |
 | `/admin/content/:tipo/new` · `/:id` | Formulario generado a partir de los campos del tipo |
+| `/admin/media` | Biblioteca de archivos |
 | `/admin/users` | Cuentas (solo `admin`) |
 | `/` | Vista pública de prueba: solo entradas publicadas |
 
@@ -108,80 +117,40 @@ El panel **no llama a la API**: las páginas leen de `src/lib/*` en el servidor 
 los formularios mutan con Server Actions. La API REST existe para clientes
 externos, que es la razón de ser de un CMS headless.
 
-## API
+## API de gestión
 
-Toda la API requiere sesión. La API pública de solo lectura llega en la fase 6.
-
-### Autenticación
+Requiere sesión (cookie de `/api/auth/login`).
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| `POST` | `/api/auth/login` | `{email, password}` → cookie `cms_session` (httpOnly) |
-| `POST` | `/api/auth/logout` | Borra la sesión del servidor y la cookie |
-| `GET` | `/api/auth/me` | Devuelve el usuario de la sesión actual |
-
-### Usuarios (solo `admin`)
-
-| Método | Ruta | Qué hace |
-|---|---|---|
-| `GET` | `/api/users` | Lista de cuentas |
-| `POST` | `/api/users` | Crea una cuenta (`role`: `admin` \| `editor`) |
-
-No hay registro público: las cuentas las crea un administrador.
-
-### Contenido
-
-| Método | Ruta | Qué hace |
-|---|---|---|
-| `GET` | `/api/posts` | Lista paginada. Query: `page`, `limit` (máx. 100), `status`, `q` |
-| `POST` | `/api/posts` | Crea una entrada. Devuelve `201` + cabecera `Location` |
-| `GET` | `/api/posts/:id` | Devuelve una entrada |
-| `PATCH` | `/api/posts/:id` | Actualiza **solo** los campos enviados |
-| `DELETE` | `/api/posts/:id` | Borra. Devuelve `204` sin cuerpo |
+| `POST` | `/api/auth/login` | Inicia sesión y deja la cookie |
+| `POST` | `/api/auth/logout` | Cierra la sesión |
+| `GET` | `/api/auth/me` | Usuario actual |
+| `GET` | `/api/content-types` | Tipos definidos, con sus campos |
+| `GET` | `/api/content/:tipo` | Entradas (paginación, `status`, `q`) |
+| `POST` | `/api/content/:tipo` | Crea una entrada (`{title, slug?, status?, publishedAt?, data}`) |
+| `GET` | `/api/content/:tipo/:id` | Una entrada |
+| `PATCH` | `/api/content/:tipo/:id` | Actualiza; `data` se fusiona, no se reemplaza |
+| `DELETE` | `/api/content/:tipo/:id` | Borra |
+| `GET` `POST` | `/api/users` | Cuentas (solo `admin`) |
 
 Códigos de error:
 
 | Código | Cuándo |
 |---|---|
 | `400` | El cuerpo no es JSON válido, o el id no es un UUID |
+| `401` | No hay sesión |
+| `403` | Hay sesión pero no permiso (rol o propiedad del contenido) |
 | `404` | El recurso no existe |
-| `409` | Conflicto: el slug ya está en uso |
-| `422` | El JSON es válido pero los datos no pasan la validación (incluye `issues[]` por campo) |
-| `401` | No hay sesión válida (identifícate) |
-| `403` | Hay sesión, pero no permiso (no vuelvas a intentarlo igual) |
-| `500` | Error inesperado (el detalle solo se registra en el servidor) |
-
-Ejemplo:
-
-```bash
-curl -X POST http://localhost:3000/api/posts \
-  -H 'content-type: application/json' \
-  -d '{"title":"¿Cómo funciona un CMS?","body":"...","status":"published"}'
-```
-
-Si no envías `slug`, se deriva del título (`como-funciona-un-cms`).
+| `409` | Conflicto: el slug ya está en uso dentro de ese tipo |
+| `422` | Datos inválidos (incluye `issues[]` por campo) |
 
 ## Tipos de contenido dinámicos
 
-El modelo fijo (`posts`) sigue ahí para comparar, pero el contenido nuevo se
-define **desde el panel**, sin escribir código ni generar migraciones:
-
-- `content_types` — un tipo (Producto, Evento) con su `api_id`
-- `content_fields` — los campos de ese tipo (etiqueta, clave, tipo, obligatorio)
-- `entries` — las entradas, con los valores en una columna `jsonb`
-
-El esquema de validación se **construye en tiempo de ejecución** a partir de las
+El contenido se define **desde el panel**, sin escribir código ni generar
+migraciones. El esquema de validación se **construye en tiempo de ejecución** a partir de las
 definiciones de campo, así que la API y el formulario del panel salen los dos de
 la misma fuente.
-
-| Método | Ruta | Qué hace |
-|---|---|---|
-| `GET` | `/api/content-types` | Tipos definidos, con sus campos |
-| `GET` | `/api/content/:tipo` | Entradas del tipo (paginación, `status`, `q`) |
-| `POST` | `/api/content/:tipo` | Crea una entrada (`{title, slug?, status?, data}`) |
-| `GET` | `/api/content/:tipo/:id` | Una entrada |
-| `PATCH` | `/api/content/:tipo/:id` | Actualiza; `data` se fusiona, no se reemplaza |
-| `DELETE` | `/api/content/:tipo/:id` | Borra |
 
 ```bash
 curl -b cookies.txt -X POST http://localhost:3000/api/content/producto \
@@ -191,6 +160,43 @@ curl -b cookies.txt -X POST http://localhost:3000/api/content/producto \
 
 El slug es único **por tipo**: un producto y un evento pueden compartirlo.
 
+## API pública
+
+Sin autenticación y **solo contenido publicado**. Es la API que consumiría un
+sitio web, una app móvil o cualquier cliente externo.
+
+| Método | Ruta | Qué devuelve |
+|---|---|---|
+| `GET` | `/api/public/:tipo` | Entradas publicadas del tipo |
+| `GET` | `/api/public/:tipo/:slug` | Una entrada publicada |
+| `GET` | `/api/media/:id` | Un archivo subido |
+
+```bash
+curl http://localhost:3000/api/public/producto
+```
+
+Una entrada solo es pública si `status = published` **y** su `publishedAt` ya ha
+pasado: una fecha futura la deja programada.
+
+## Caché
+
+El proyecto usa Cache Components (`cacheComponents: true` en `next.config.ts`):
+
+- `src/lib/public-content.ts` marca sus consultas con `"use cache"`, les da una
+  vida con `cacheLife("minutes")` y una etiqueta con `cacheTag`.
+- La capa de dominio llama a `revalidateTag(tag, "max")` en cada escritura, así
+  que publicar invalida la caché sin que ninguna ruta tenga que acordarse.
+- Con el perfil `"max"`, la primera petición tras invalidar recibe contenido
+  antiguo mientras se recalcula en segundo plano; la siguiente ya es fresca.
+- Las páginas del panel llevan `export const instant = false`: dependen de la
+  sesión, así que bloquean a propósito y no se prerenderizan.
+
+## Medios
+
+Los archivos se guardan en `storage/media/` (fuera de `public/`, ignorado por
+git) y se sirven por `/api/media/:id` con `Cache-Control: immutable`: el
+contenido de un id nunca cambia. Se admiten imágenes y PDF de hasta 5 MB.
+
 ## Roadmap
 
 - [x] **Fase 1** — Andamiaje, Postgres en Docker, Drizzle, esquema inicial
@@ -198,4 +204,5 @@ El slug es único **por tipo**: un producto y un evento pueden compartirlo.
 - [x] **Fase 3** — Autenticación por sesión y roles
 - [x] **Fase 4** — Panel de administración (Server Actions)
 - [x] **Fase 5** — Tipos de contenido dinámicos
-- [ ] **Fase 6** — Publicación, media, API pública y caché
+- [x] **Fase 6** — Publicación, media, API pública y caché
+- [x] **Migración** — `posts` absorbido por el sistema dinámico (tipo `articulo`)

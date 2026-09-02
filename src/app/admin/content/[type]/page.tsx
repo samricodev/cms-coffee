@@ -8,6 +8,8 @@ import { listEntries } from "@/lib/entries";
 import { AppError } from "@/lib/errors";
 import { listEntriesQuerySchema } from "@/lib/validation/content";
 
+export const instant = false;
+
 export default async function EntriesPage({
   params,
   searchParams,

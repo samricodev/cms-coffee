@@ -42,18 +42,27 @@ export const createFieldSchema = z
     }
   });
 
-export const entryBaseSchema = z.object({
+const entryFields = {
   title: z.string().trim().min(1, "El título no puede estar vacío").max(200),
   slug: z
     .string()
     .trim()
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug no válido")
-    .max(80)
-    .optional(),
-  status: z.enum(["draft", "published"]).default("draft"),
+    .max(80),
+  status: z.enum(["draft", "published"]),
+  publishedAt: z.iso
+    .datetime({ local: true, offset: true })
+    .or(z.literal("").transform(() => undefined)),
+};
+
+export const entryBaseSchema = z.object({
+  title: entryFields.title,
+  slug: entryFields.slug.optional(),
+  status: entryFields.status.default("draft"),
+  publishedAt: entryFields.publishedAt.optional(),
 });
 
-export const updateEntryBaseSchema = entryBaseSchema.partial();
+export const updateEntryBaseSchema = z.object(entryFields).partial();
 
 export const listEntriesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).catch(1),

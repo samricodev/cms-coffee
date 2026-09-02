@@ -6,6 +6,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { listContentTypes } from "@/lib/content-types";
 
 export const metadata = { title: "Panel · CMS" };
+export const instant = false;
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await getSessionUser();
@@ -19,9 +20,6 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         <nav className="mx-auto flex max-w-4xl flex-wrap items-center gap-4 p-4 text-sm">
           <Link href="/admin" className="font-semibold">
             CMS
-          </Link>
-          <Link href="/admin" className="hover:underline">
-            Entradas
           </Link>
           {types.map((type) => (
             <Link
@@ -42,6 +40,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               Usuarios
             </Link>
           ) : null}
+          <Link href="/admin/media" className="hover:underline">
+            Medios
+          </Link>
           <Link href="/" className="hover:underline">
             Ver sitio
           </Link>

@@ -148,6 +148,35 @@ export function EntryForm({ action, fields, entry, submitLabel }: Props) {
         </select>
       </div>
 
+      <div>
+        <label className={label} htmlFor="publishedAt">
+          Publicar el
+        </label>
+        <input
+          className={input}
+          id="publishedAt"
+          name="publishedAt"
+          type="datetime-local"
+          defaultValue={valueOf(
+            state,
+            "publishedAt",
+            entry?.publishedAt
+              ? new Date(
+                  entry.publishedAt.getTime() -
+                    entry.publishedAt.getTimezoneOffset() * 60000,
+                )
+                  .toISOString()
+                  .slice(0, 16)
+              : "",
+          )}
+        />
+        <p className="mt-1 text-xs text-black/60 dark:text-white/60">
+          Con una fecha futura, la entrada no aparece en la API pública hasta
+          entonces.
+        </p>
+        <FieldError message={issueOf(state, "publishedAt")} />
+      </div>
+
       <SubmitButton>{submitLabel}</SubmitButton>
     </form>
   );

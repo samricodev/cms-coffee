@@ -1,10 +1,12 @@
 import { and, count, desc, eq, getTableColumns, ilike, or, sql } from "drizzle-orm";
+import { revalidateTag } from "next/cache";
 
 import { db } from "@/db";
 import { entries, users, type ContentTypeWithFields, type Entry } from "@/db/schema";
 import { assertCanModify } from "@/lib/auth/guards";
 import type { SessionUser } from "@/lib/auth/session";
 import { conflict, notFound } from "@/lib/errors";
+import { contentTag } from "@/lib/public-content";
 import { slugify } from "@/lib/slug";
 import {
   buildEntryDataSchema,
@@ -107,10 +109,15 @@ export async function createEntry(
         status: base.status,
         data,
         authorId: actor.id,
-        publishedAt: base.status === "published" ? new Date() : null,
+        publishedAt: base.publishedAt
+          ? new Date(base.publishedAt)
+          : base.status === "published"
+            ? new Date()
+            : null,
       })
       .returning();
 
+    revalidateTag(contentTag(type.apiId), "max");
     return created;
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -130,21 +137,26 @@ export async function updateEntry(
   const current = await getEntry(type, id);
   assertCanModify(actor, current);
 
+  const { publishedAt, ...fields } = base;
+  const scheduled = publishedAt ? new Date(publishedAt) : undefined;
+
   const becomesPublished =
-    base.status === "published" && current.publishedAt === null;
+    base.status === "published" && current.publishedAt === null && !scheduled;
 
   try {
     const [updated] = await db
       .update(entries)
       .set({
-        ...base,
+        ...fields,
         data,
+        ...(scheduled ? { publishedAt: scheduled } : {}),
         ...(becomesPublished ? { publishedAt: new Date() } : {}),
         updatedAt: new Date(),
       })
       .where(eq(entries.id, id))
       .returning();
 
+    revalidateTag(contentTag(type.apiId), "max");
     return updated;
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -162,4 +174,5 @@ export async function deleteEntry(
   const current = await getEntry(type, id);
   assertCanModify(actor, current);
   await db.delete(entries).where(eq(entries.id, id));
+  revalidateTag(contentTag(type.apiId), "max");
 }

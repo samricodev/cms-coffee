@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
@@ -51,6 +52,8 @@ export function unprocessable(error: ZodError) {
 }
 
 export function errorResponse(error: unknown) {
+  unstable_rethrow(error);
+
   if (error instanceof AppError) {
     return NextResponse.json<ApiError>(
       { error: { code: error.code, message: error.message } },

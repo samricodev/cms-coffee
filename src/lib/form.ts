@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { ZodError } from "zod";
 
 import { AppError } from "@/lib/errors";
@@ -38,6 +39,8 @@ export function toFormState(
   error: unknown,
   values?: Record<string, string>,
 ): FormState {
+  unstable_rethrow(error);
+
   if (error instanceof ZodError) {
     const issues: Record<string, string> = {};
     for (const issue of error.issues) {

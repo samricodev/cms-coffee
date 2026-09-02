@@ -12,7 +12,6 @@ import {
 } from "@/lib/auth/session";
 import { requireAdmin, requireUser } from "@/lib/auth/guards";
 import { authenticate, createUser } from "@/lib/users";
-import { createPost, deletePost, updatePost } from "@/lib/posts";
 import {
   addField,
   createContentType,
@@ -27,6 +26,7 @@ import {
   updateEntry,
 } from "@/lib/entries";
 import type { ContentField } from "@/db/schema";
+import { createMedia, deleteMedia } from "@/lib/media";
 import {
   createContentTypeSchema,
   createFieldSchema,
@@ -34,7 +34,6 @@ import {
 } from "@/lib/validation/content";
 import { formValues, toFormState, type FormState } from "@/lib/form";
 import { createUserSchema, loginSchema } from "@/lib/validation/auth";
-import { createPostSchema, updatePostSchema } from "@/lib/validation/post";
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "");
@@ -69,64 +68,6 @@ export async function logoutAction() {
   await destroySession(jar.get(SESSION_COOKIE)?.value);
   jar.delete(SESSION_COOKIE);
   redirect("/login");
-}
-
-export async function createPostAction(
-  _prev: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  let id: string;
-
-  try {
-    const actor = await requireUser();
-    const slug = text(formData, "slug").trim();
-
-    const input = createPostSchema.parse({
-      title: text(formData, "title"),
-      slug: slug === "" ? undefined : slug,
-      excerpt: text(formData, "excerpt") || null,
-      body: text(formData, "body"),
-      status: text(formData, "status"),
-    });
-
-    id = (await createPost(input, actor)).id;
-    refresh("/admin", "/");
-  } catch (error) {
-    return toFormState(error, formValues(formData));
-  }
-
-  redirect(`/admin/posts/${id}`);
-}
-
-export async function updatePostAction(
-  id: string,
-  _prev: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  try {
-    const actor = await requireUser();
-
-    const input = updatePostSchema.parse({
-      title: text(formData, "title"),
-      slug: text(formData, "slug"),
-      excerpt: text(formData, "excerpt") || null,
-      body: text(formData, "body"),
-      status: text(formData, "status"),
-    });
-
-    await updatePost(id, input, actor);
-    refresh("/admin", `/admin/posts/${id}`, "/");
-    return { status: "success", message: "Guardado" };
-  } catch (error) {
-    return toFormState(error, formValues(formData));
-  }
-}
-
-export async function deletePostAction(id: string) {
-  const actor = await requireUser();
-  await deletePost(id, actor);
-  refresh("/admin", "/");
-  redirect("/admin");
 }
 
 export async function createUserAction(
@@ -252,6 +193,7 @@ export async function createEntryAction(
       title: text(formData, "title"),
       slug: slug === "" ? undefined : slug,
       status: text(formData, "status"),
+      publishedAt: text(formData, "publishedAt"),
     });
 
     const data = entryDataSchema(type).parse(readEntryData(type.fields, formData));
@@ -279,6 +221,7 @@ export async function updateEntryAction(
       title: text(formData, "title"),
       slug: text(formData, "slug"),
       status: text(formData, "status"),
+      publishedAt: text(formData, "publishedAt"),
     });
 
     const data = entryDataSchema(type).parse(readEntryData(type.fields, formData));
@@ -297,4 +240,30 @@ export async function deleteEntryAction(apiId: string, id: string) {
   await deleteEntry(type, id, actor);
   refresh("/admin", `/admin/content/${apiId}`);
   redirect(`/admin/content/${apiId}`);
+}
+
+export async function uploadMediaAction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    const actor = await requireUser();
+    const file = formData.get("file");
+
+    if (!(file instanceof File)) {
+      return { status: "error", message: "Selecciona un archivo" };
+    }
+
+    const item = await createMedia(file, actor);
+    refresh("/admin/media");
+    return { status: "success", message: `Subido: ${item.filename}` };
+  } catch (error) {
+    return toFormState(error);
+  }
+}
+
+export async function deleteMediaAction(id: string) {
+  const actor = await requireUser();
+  await deleteMedia(id, actor);
+  refresh("/admin/media");
 }

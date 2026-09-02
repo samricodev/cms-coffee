@@ -11,6 +11,8 @@ import { getContentTypeByApiId } from "@/lib/content-types";
 import { getEntry } from "@/lib/entries";
 import { AppError } from "@/lib/errors";
 
+export const instant = false;
+
 export default async function EditEntryPage({
   params,
 }: PageProps<"/admin/content/[type]/[id]">) {

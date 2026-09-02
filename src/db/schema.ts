@@ -37,29 +37,6 @@ export const users = pgTable(
   (table) => [uniqueIndex("users_email_idx").on(table.email)],
 );
 
-export const posts = pgTable(
-  "posts",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    title: text("title").notNull(),
-    slug: text("slug").notNull(),
-    excerpt: text("excerpt"),
-    body: text("body").notNull().default(""),
-    status: postStatus("status").notNull().default("draft"),
-    authorId: uuid("author_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    publishedAt: timestamp("published_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [uniqueIndex("posts_slug_idx").on(table.slug)],
-);
-
 export const sessions = pgTable(
   "sessions",
   {
@@ -138,13 +115,26 @@ export const entries = pgTable(
   ],
 );
 
+export const media = pgTable("media", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  filename: text("filename").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(),
+  storageKey: text("storage_key").notNull(),
+  uploadedBy: uuid("uploaded_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-export type Post = typeof posts.$inferSelect;
-export type NewPost = typeof posts.$inferInsert;
 export type ContentType = typeof contentTypes.$inferSelect;
 export type ContentField = typeof contentFields.$inferSelect;
 export type FieldType = ContentField["type"];
 export type Entry = typeof entries.$inferSelect;
 export type ContentTypeWithFields = ContentType & { fields: ContentField[] };
+export type Media = typeof media.$inferSelect;
 export type Session = typeof sessions.$inferSelect;

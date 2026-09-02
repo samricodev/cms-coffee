@@ -1,126 +1,156 @@
+import { eq } from "drizzle-orm";
+
 import { hashPassword } from "../lib/auth/password";
 import { db } from "./index";
-import { contentFields, contentTypes, entries, posts, users } from "./schema";
+import {
+  contentFields,
+  contentTypes,
+  entries,
+  users,
+  type ContentType,
+} from "./schema";
 
 const SEED_PASSWORD = process.env.SEED_PASSWORD ?? "contrasena-de-desarrollo";
+
+type FieldSeed = {
+  label: string;
+  apiKey: string;
+  type: "text" | "textarea" | "number" | "boolean" | "date" | "select";
+  required?: boolean;
+  choices?: string[];
+};
+
+async function upsertType(
+  name: string,
+  apiId: string,
+  description: string,
+  fields: FieldSeed[],
+): Promise<ContentType> {
+  await db
+    .insert(contentTypes)
+    .values({ name, apiId, description })
+    .onConflictDoNothing({ target: contentTypes.apiId });
+
+  const [type] = await db
+    .select()
+    .from(contentTypes)
+    .where(eq(contentTypes.apiId, apiId))
+    .limit(1);
+
+  const existing = await db
+    .select({ apiKey: contentFields.apiKey })
+    .from(contentFields)
+    .where(eq(contentFields.contentTypeId, type.id));
+
+  const missing = fields.filter(
+    (field) => !existing.some((row) => row.apiKey === field.apiKey),
+  );
+
+  if (missing.length > 0) {
+    await db.insert(contentFields).values(
+      missing.map((field, index) => ({
+        contentTypeId: type.id,
+        label: field.label,
+        apiKey: field.apiKey,
+        type: field.type,
+        required: field.required ?? false,
+        choices: field.choices ?? null,
+        position: existing.length + index,
+      })),
+    );
+  }
+
+  return type;
+}
 
 async function seed() {
   const passwordHash = await hashPassword(SEED_PASSWORD);
 
-  const [existing] = await db
+  const [admin] = await db
     .insert(users)
     .values([
-      {
-        email: "admin@cms.local",
-        name: "Admin",
-        passwordHash,
-        role: "admin" as const,
-      },
-      {
-        email: "editor@cms.local",
-        name: "Editor",
-        passwordHash,
-        role: "editor" as const,
-      },
+      { email: "admin@cms.local", name: "Admin", passwordHash, role: "admin" },
+      { email: "editor@cms.local", name: "Editor", passwordHash, role: "editor" },
     ])
     .onConflictDoUpdate({ target: users.email, set: { passwordHash } })
     .returning();
 
-  await db
-    .insert(posts)
-    .values([
-      {
-        title: "Hola, CMS",
-        slug: "hola-cms",
-        excerpt: "La primera entrada guardada en Postgres.",
-        body: "Estás leyendo esto desde la base de datos.",
-        status: "published",
-        publishedAt: new Date(),
-        authorId: existing?.id,
-      },
-      {
-        title: "Un borrador",
-        slug: "un-borrador",
-        excerpt: "Todavía no es público.",
-        body: "Los borradores no deben aparecer en la API pública.",
-        status: "draft",
-        authorId: existing?.id,
-      },
-    ])
-    .onConflictDoNothing({ target: posts.slug });
+  const articulo = await upsertType(
+    "Artículo",
+    "articulo",
+    "Textos del blog.",
+    [
+      { label: "Extracto", apiKey: "excerpt", type: "text" },
+      { label: "Contenido", apiKey: "body", type: "textarea" },
+    ],
+  );
 
-  const [productType] = await db
-    .insert(contentTypes)
-    .values({
-      name: "Producto",
-      apiId: "producto",
-      description: "Catálogo de ejemplo para probar los tipos dinámicos.",
-    })
-    .onConflictDoNothing({ target: contentTypes.apiId })
-    .returning();
-
-  if (productType) {
-    await db.insert(contentFields).values([
+  const producto = await upsertType(
+    "Producto",
+    "producto",
+    "Catálogo de ejemplo.",
+    [
+      { label: "Precio", apiKey: "precio", type: "number", required: true },
       {
-        contentTypeId: productType.id,
-        label: "Precio",
-        apiKey: "precio",
-        type: "number" as const,
-        required: true,
-        position: 0,
-      },
-      {
-        contentTypeId: productType.id,
         label: "Categoría",
         apiKey: "categoria",
-        type: "select" as const,
+        type: "select",
         required: true,
-        position: 1,
         choices: ["camisetas", "tazas", "pósters"],
       },
-      {
-        contentTypeId: productType.id,
-        label: "Disponible",
-        apiKey: "disponible",
-        type: "boolean" as const,
-        position: 2,
-      },
-      {
-        contentTypeId: productType.id,
-        label: "Descripción",
-        apiKey: "descripcion",
-        type: "textarea" as const,
-        position: 3,
-      },
-      {
-        contentTypeId: productType.id,
-        label: "Lanzamiento",
-        apiKey: "lanzamiento",
-        type: "date" as const,
-        position: 4,
-      },
-    ]);
+      { label: "Disponible", apiKey: "disponible", type: "boolean" },
+      { label: "Descripción", apiKey: "descripcion", type: "textarea" },
+      { label: "Lanzamiento", apiKey: "lanzamiento", type: "date" },
+    ],
+  );
 
-    await db.insert(entries).values({
-      contentTypeId: productType.id,
-      title: "Taza del CMS",
-      slug: "taza-del-cms",
-      status: "published",
-      publishedAt: new Date(),
-      authorId: existing?.id,
-      data: {
-        precio: 12.5,
-        categoria: "tazas",
-        disponible: true,
-        descripcion: "Una taza con el logo del proyecto.",
-        lanzamiento: "2026-09-01",
+  await db
+    .insert(entries)
+    .values([
+      {
+        contentTypeId: articulo.id,
+        title: "Hola, CMS",
+        slug: "hola-cms",
+        status: "published",
+        publishedAt: new Date(),
+        authorId: admin?.id,
+        data: {
+          excerpt: "La primera entrada guardada en Postgres.",
+          body: "Estás leyendo esto desde la base de datos.",
+        },
       },
-    });
-  }
+      {
+        contentTypeId: articulo.id,
+        title: "Un borrador",
+        slug: "un-borrador",
+        status: "draft",
+        authorId: admin?.id,
+        data: {
+          excerpt: "Todavía no es público.",
+          body: "Los borradores no aparecen en la API pública.",
+        },
+      },
+      {
+        contentTypeId: producto.id,
+        title: "Taza del CMS",
+        slug: "taza-del-cms",
+        status: "published",
+        publishedAt: new Date(),
+        authorId: admin?.id,
+        data: {
+          precio: 12.5,
+          categoria: "tazas",
+          disponible: true,
+          descripcion: "Una taza con el logo del proyecto.",
+          lanzamiento: "2026-09-01",
+        },
+      },
+    ])
+    .onConflictDoNothing();
 
-  const total = await db.query.posts.findMany();
+  const total = await db.select().from(entries);
   console.log(`Seed completado. Entradas en la base: ${total.length}`);
-  console.log(`Cuentas: admin@cms.local / editor@cms.local`);
+  console.log("Cuentas: admin@cms.local / editor@cms.local");
   console.log(`Contraseña: ${SEED_PASSWORD}`);
   process.exit(0);
 }

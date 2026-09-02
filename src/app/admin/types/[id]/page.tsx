@@ -20,6 +20,8 @@ const FIELD_TYPE_LABEL: Record<string, string> = {
   select: "Selección",
 };
 
+export const instant = false;
+
 export default async function ContentTypePage({
   params,
 }: PageProps<"/admin/types/[id]">) {

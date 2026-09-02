@@ -4,6 +4,8 @@ import { card } from "@/components/ui";
 import { requireUser } from "@/lib/auth/guards";
 import { listUsers } from "@/lib/users";
 
+export const instant = false;
+
 export default async function UsersPage() {
   const actor = await requireUser();
 

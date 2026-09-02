@@ -4,6 +4,7 @@ import { LoginForm } from "@/components/login-form";
 import { getSessionUser } from "@/lib/auth/session";
 
 export const metadata = { title: "Entrar · CMS" };
+export const instant = false;
 
 export default async function LoginPage() {
   if (await getSessionUser()) redirect("/admin");

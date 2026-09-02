@@ -1,20 +1,30 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, count, eq, sql } from "drizzle-orm";
+import { revalidateTag } from "next/cache";
 
 import { db } from "@/db";
 import {
   contentFields,
   contentTypes,
+  entries,
   type ContentField,
   type ContentType,
   type ContentTypeWithFields,
 } from "@/db/schema";
 import { conflict, notFound } from "@/lib/errors";
+import { TYPES_TAG, contentTag } from "@/lib/public-content";
 import type {
   CreateContentTypeInput,
   CreateFieldInput,
 } from "@/lib/validation/content";
 
-const RESERVED_API_IDS = new Set(["posts", "users", "auth", "content-types"]);
+const RESERVED_API_IDS = new Set([
+  "auth",
+  "content",
+  "content-types",
+  "media",
+  "public",
+  "users",
+]);
 
 async function fieldsOf(contentTypeId: string): Promise<ContentField[]> {
   return db
@@ -38,6 +48,40 @@ export async function listContentTypes(): Promise<ContentTypeWithFields[]> {
   return types.map((type) => ({
     ...type,
     fields: fields.filter((field) => field.contentTypeId === type.id),
+  }));
+}
+
+export type ContentTypeSummary = ContentType & {
+  fieldCount: number;
+  entryCount: number;
+  publishedCount: number;
+};
+
+export async function listContentTypeSummaries(): Promise<ContentTypeSummary[]> {
+  const rows = await db
+    .select({
+      id: contentTypes.id,
+      name: contentTypes.name,
+      apiId: contentTypes.apiId,
+      description: contentTypes.description,
+      createdAt: contentTypes.createdAt,
+      entryCount: count(entries.id),
+      publishedCount: sql<number>`count(*) filter (where ${entries.status} = 'published')`.mapWith(
+        Number,
+      ),
+    })
+    .from(contentTypes)
+    .leftJoin(entries, eq(entries.contentTypeId, contentTypes.id))
+    .groupBy(contentTypes.id)
+    .orderBy(asc(contentTypes.name));
+
+  const fields = await db
+    .select({ contentTypeId: contentFields.contentTypeId })
+    .from(contentFields);
+
+  return rows.map((row) => ({
+    ...row,
+    fieldCount: fields.filter((field) => field.contentTypeId === row.id).length,
   }));
 }
 
@@ -91,6 +135,7 @@ export async function createContentType(
     })
     .returning();
 
+  revalidateTag(TYPES_TAG, "max");
   return created;
 }
 
@@ -101,6 +146,7 @@ export async function deleteContentType(id: string): Promise<void> {
     .returning({ id: contentTypes.id });
 
   if (!deleted) throw notFound(`No existe el tipo de contenido ${id}`);
+  revalidateTag(TYPES_TAG, "max");
 }
 
 export async function addField(
@@ -126,6 +172,7 @@ export async function addField(
     })
     .returning();
 
+  revalidateTag(contentTag(type.apiId), "max");
   return created;
 }
 

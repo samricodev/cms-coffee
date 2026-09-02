@@ -6,6 +6,8 @@ import { card } from "@/components/ui";
 import { requireUser } from "@/lib/auth/guards";
 import { listContentTypes } from "@/lib/content-types";
 
+export const instant = false;
+
 export default async function ContentTypesPage() {
   const actor = await requireUser();
 
