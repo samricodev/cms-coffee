@@ -13,8 +13,8 @@ const fields = {
   excerpt: z.string().trim().max(300).nullable(),
   body: z.string(),
   status: z.enum(["draft", "published"]),
-  authorId: z.uuid("authorId debe ser un UUID").nullable(),
 };
+
 
 export const createPostSchema = z.object({
   title: fields.title,
@@ -23,7 +23,6 @@ export const createPostSchema = z.object({
   excerpt: fields.excerpt.optional(),
   body: fields.body.default(""),
   status: fields.status.default("draft"),
-  authorId: fields.authorId.optional(),
 });
 
 export const updatePostSchema = z

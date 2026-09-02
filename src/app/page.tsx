@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { posts } from "@/db/schema";
@@ -9,13 +9,14 @@ export default async function Home() {
   const rows = await db
     .select()
     .from(posts)
-    .orderBy(desc(posts.createdAt));
+    .where(eq(posts.status, "published"))
+    .orderBy(desc(posts.publishedAt));
 
   return (
     <main className="mx-auto max-w-2xl p-10 font-sans">
       <h1 className="text-2xl font-semibold">CMS</h1>
       <p className="mt-2 text-sm text-gray-500">
-        Contenido leído directamente de Postgres ({rows.length} entradas).
+        Vista pública de prueba: solo entradas publicadas ({rows.length}).
       </p>
 
       <ul className="mt-8 space-y-4">

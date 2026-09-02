@@ -5,6 +5,8 @@ import { AppError, type AppErrorCode } from "@/lib/errors";
 
 const STATUS_BY_CODE: Record<AppErrorCode, number> = {
   invalid_input: 400,
+  unauthorized: 401,
+  forbidden: 403,
   not_found: 404,
   conflict: 409,
 };

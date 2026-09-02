@@ -1,19 +1,30 @@
+import { hashPassword } from "../lib/auth/password";
 import { db } from "./index";
 import { posts, users } from "./schema";
 
-async function seed() {
-  const [author] = await db
-    .insert(users)
-    .values({
-      email: "admin@cms.local",
-      name: "Admin",
-      passwordHash: "PENDIENTE_FASE_3",
-      role: "admin",
-    })
-    .onConflictDoNothing({ target: users.email })
-    .returning();
+const SEED_PASSWORD = process.env.SEED_PASSWORD ?? "contrasena-de-desarrollo";
 
-  const existing = author ?? (await db.query.users.findFirst());
+async function seed() {
+  const passwordHash = await hashPassword(SEED_PASSWORD);
+
+  const [existing] = await db
+    .insert(users)
+    .values([
+      {
+        email: "admin@cms.local",
+        name: "Admin",
+        passwordHash,
+        role: "admin" as const,
+      },
+      {
+        email: "editor@cms.local",
+        name: "Editor",
+        passwordHash,
+        role: "editor" as const,
+      },
+    ])
+    .onConflictDoUpdate({ target: users.email, set: { passwordHash } })
+    .returning();
 
   await db
     .insert(posts)
@@ -40,6 +51,8 @@ async function seed() {
 
   const total = await db.query.posts.findMany();
   console.log(`Seed completado. Entradas en la base: ${total.length}`);
+  console.log(`Cuentas: admin@cms.local / editor@cms.local`);
+  console.log(`Contraseña: ${SEED_PASSWORD}`);
   process.exit(0);
 }
 

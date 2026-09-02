@@ -1,6 +1,8 @@
 import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 
 import { db } from "@/db";
+import { assertCanModifyPost } from "@/lib/auth/guards";
+import type { SessionUser } from "@/lib/auth/session";
 import { posts, type Post } from "@/db/schema";
 import { conflict, notFound } from "@/lib/errors";
 import { slugify } from "@/lib/slug";
@@ -70,7 +72,10 @@ export async function getPostById(id: string): Promise<Post> {
   return post;
 }
 
-export async function createPost(input: CreatePostInput): Promise<Post> {
+export async function createPost(
+  input: CreatePostInput,
+  actor: SessionUser,
+): Promise<Post> {
   const slug = input.slug ?? slugify(input.title);
   if (!slug) {
     throw conflict("No se pudo derivar un slug del título; envía uno explícito");
@@ -85,7 +90,7 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
         excerpt: input.excerpt ?? null,
         body: input.body,
         status: input.status,
-        authorId: input.authorId ?? null,
+        authorId: actor.id,
         // Regla de negocio: publishedAt marca cuándo se publicó por primera vez.
         publishedAt: input.status === "published" ? new Date() : null,
       })
@@ -102,8 +107,10 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
 export async function updatePost(
   id: string,
   input: UpdatePostInput,
+  actor: SessionUser,
 ): Promise<Post> {
   const current = await getPostById(id);
+  assertCanModifyPost(actor, current);
 
   const becomesPublished =
     input.status === "published" && current.publishedAt === null;
@@ -127,11 +134,9 @@ export async function updatePost(
   }
 }
 
-export async function deletePost(id: string): Promise<void> {
-  const [deleted] = await db
-    .delete(posts)
-    .where(eq(posts.id, id))
-    .returning({ id: posts.id });
+export async function deletePost(id: string, actor: SessionUser): Promise<void> {
+  const current = await getPostById(id);
+  assertCanModifyPost(actor, current);
 
-  if (!deleted) throw notFound(`No existe ninguna entrada con id ${id}`);
+  await db.delete(posts).where(eq(posts.id, id));
 }
