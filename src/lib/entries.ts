@@ -4,7 +4,6 @@ import {
   desc,
   eq,
   getTableColumns,
-  ilike,
   or,
   sql,
 } from "drizzle-orm";
@@ -23,7 +22,7 @@ import {
 import { assertCanModify } from "@/lib/auth/guards";
 import type { SessionUser } from "@/lib/auth/session";
 import { conflict, notFound } from "@/lib/errors";
-import { REFERENCES_TAG, contentTag } from "@/lib/public-content";
+import { REFERENCES_TAG, SEARCH_TAG, contentTag } from "@/lib/public-content";
 import { slugify } from "@/lib/slug";
 import {
   buildEntryDataSchema,
@@ -63,10 +62,7 @@ export async function listEntries(
     eq(entries.contentTypeId, type.id),
     status ? eq(entries.status, status) : undefined,
     q
-      ? or(
-          ilike(entries.title, `%${q}%`),
-          sql`${entries.data}::text ilike ${`%${q}%`}`,
-        )
+      ? sql`${entries.searchVector} @@ websearch_to_tsquery('spanish', ${q})`
       : undefined,
   );
 
@@ -76,7 +72,13 @@ export async function listEntries(
       .from(entries)
       .leftJoin(users, eq(users.id, entries.authorId))
       .where(where)
-      .orderBy(desc(entries.createdAt))
+      .orderBy(
+        q
+          ? desc(
+              sql`ts_rank(${entries.searchVector}, websearch_to_tsquery('spanish', ${q}))`,
+            )
+          : desc(entries.createdAt),
+      )
       .limit(limit)
       .offset((page - 1) * limit),
     db.select({ value: count() }).from(entries).where(where),
@@ -138,6 +140,7 @@ export async function createEntry(
 
     revalidateTag(contentTag(type.apiId), "max");
     revalidateTag(REFERENCES_TAG, "max");
+    revalidateTag(SEARCH_TAG, "max");
     return created;
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -188,6 +191,7 @@ export async function updateEntry(
 
     revalidateTag(contentTag(type.apiId), "max");
     revalidateTag(REFERENCES_TAG, "max");
+    revalidateTag(SEARCH_TAG, "max");
     return updated;
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -265,4 +269,5 @@ export async function deleteEntry(
   await db.delete(entries).where(eq(entries.id, id));
   revalidateTag(contentTag(type.apiId), "max");
   revalidateTag(REFERENCES_TAG, "max");
+  revalidateTag(SEARCH_TAG, "max");
 }

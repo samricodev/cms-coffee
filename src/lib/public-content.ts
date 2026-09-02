@@ -13,6 +13,7 @@ import { attachExpansion, resolveRelations, type ExpandedEntry } from "@/lib/rel
 export const contentTag = (apiId: string) => `content:${apiId}`;
 export const TYPES_TAG = "content-types";
 export const REFERENCES_TAG = "references";
+export const SEARCH_TAG = "search";
 
 export type PublicEntry = {
   id: string;
@@ -221,4 +222,129 @@ export async function getEvents(): Promise<{
       .filter((evento) => fecha(evento) < hoy)
       .sort((a, b) => fecha(b).localeCompare(fecha(a))),
   };
+}
+
+export type SearchHit = PublicReference & { rank: number };
+
+export async function searchPublic(query: string): Promise<SearchHit[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(SEARCH_TAG);
+
+  const term = query.trim();
+  if (term === "") return [];
+
+  const matches = sql`${entries.searchVector} @@ websearch_to_tsquery('spanish', ${term})`;
+
+  return db
+    .select({
+      id: entries.id,
+      title: entries.title,
+      slug: entries.slug,
+      data: entries.data,
+      typeApiId: contentTypes.apiId,
+      typeName: contentTypes.name,
+      rank: sql<number>`ts_rank(${entries.searchVector}, websearch_to_tsquery('spanish', ${term}))`,
+    })
+    .from(entries)
+    .innerJoin(contentTypes, eq(contentTypes.id, entries.contentTypeId))
+    .where(
+      and(
+        matches,
+        eq(entries.status, "published"),
+        isNotNull(entries.publishedAt),
+        lte(entries.publishedAt, new Date()),
+      ),
+    )
+    .orderBy(
+      desc(
+        sql`ts_rank(${entries.searchVector}, websearch_to_tsquery('spanish', ${term}))`,
+      ),
+    )
+    .limit(30);
+}
+
+export type CafeFilters = {
+  pais?: string;
+  proceso?: string;
+  tueste?: string;
+  nota?: string;
+};
+
+export async function getCafeChoices(): Promise<{
+  pais: string[];
+  proceso: string[];
+  tueste: string[];
+  notas: string[];
+}> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(contentTag("cafe"));
+
+  const type = await loadType("cafe");
+  const cafes = await getPublicEntries("cafe", 200);
+
+  const choices = (key: string) =>
+    type?.fields.find((field) => field.apiKey === key)?.choices ?? [];
+
+  const notas = [
+    ...new Set(
+      cafes.flatMap((cafe) =>
+        Array.isArray(cafe.data.notas)
+          ? cafe.data.notas.filter((nota): nota is string => typeof nota === "string")
+          : [],
+      ),
+    ),
+  ].sort((a, b) => a.localeCompare(b, "es"));
+
+  return {
+    pais: choices("pais"),
+    proceso: choices("proceso"),
+    tueste: choices("tueste"),
+    notas,
+  };
+}
+
+export async function getFilteredCafes(
+  filters: CafeFilters,
+): Promise<PublicEntry[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(contentTag("cafe"));
+
+  const type = await loadType("cafe");
+  if (!type) return [];
+
+  const contains: Record<string, string> = {};
+  if (filters.pais) contains.pais = filters.pais;
+  if (filters.proceso) contains.proceso = filters.proceso;
+  if (filters.tueste) contains.tueste = filters.tueste;
+
+  const conditions = [
+    eq(entries.contentTypeId, type.id),
+    eq(entries.status, "published"),
+    isNotNull(entries.publishedAt),
+    lte(entries.publishedAt, new Date()),
+    Object.keys(contains).length > 0
+      ? sql`${entries.data} @> ${JSON.stringify(contains)}::jsonb`
+      : undefined,
+    filters.nota
+      ? sql`${entries.data} -> 'notas' ? ${filters.nota}`
+      : undefined,
+  ];
+
+  return db
+    .select({
+      id: entries.id,
+      title: entries.title,
+      slug: entries.slug,
+      publishedAt: entries.publishedAt,
+      seoDescription: entries.seoDescription,
+      seoImageId: entries.seoImageId,
+      data: entries.data,
+    })
+    .from(entries)
+    .where(and(...conditions))
+    .orderBy(desc(sql`(${entries.data} ->> 'puntuacion')::numeric`))
+    .limit(100);
 }

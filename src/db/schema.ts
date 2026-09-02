@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   index,
   integer,
   jsonb,
@@ -12,6 +14,10 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
+
+const tsvector = customType<{ data: string; driverData: string }>({
+  dataType: () => "tsvector",
+});
 
 export const userRole = pgEnum("user_role", ["admin", "editor"]);
 export const postStatus = pgEnum("post_status", ["draft", "published"]);
@@ -113,6 +119,9 @@ export const entries = pgTable(
     authorId: uuid("author_id").references(() => users.id, {
       onDelete: "set null",
     }),
+    searchVector: tsvector("search_vector").generatedAlwaysAs(
+      sql`setweight(to_tsvector('spanish', coalesce("title", '')), 'A') || setweight(jsonb_to_tsvector('spanish', "data", '["string"]'), 'B')`,
+    ),
     seoDescription: text("seo_description"),
     seoImageId: uuid("seo_image_id").references(() => media.id, {
       onDelete: "set null",
@@ -128,6 +137,7 @@ export const entries = pgTable(
   (table) => [
     uniqueIndex("entries_type_slug_idx").on(table.contentTypeId, table.slug),
     index("entries_data_idx").using("gin", table.data),
+    index("entries_search_idx").using("gin", table.searchVector),
   ],
 );
 

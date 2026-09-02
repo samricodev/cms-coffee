@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { JsonLd } from "@/components/site/json-ld";
 import { MediaImage } from "@/components/site/media-image";
 import { asList, asText, formatMoney, formatShortDate } from "@/lib/format";
 import { getEvents, getPublicEntries } from "@/lib/public-content";
@@ -24,6 +25,17 @@ export default async function Home() {
 
   return (
     <div className="space-y-16">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "CafeOrCoffeeShop",
+          name: site.name,
+          description: site.tagline,
+          url: site.url,
+          servesCuisine: "Café de especialidad",
+        }}
+      />
+
       <section className="max-w-2xl space-y-3">
         <h1 className="font-display text-4xl leading-[1.1] sm:text-5xl">
           {site.tagline}

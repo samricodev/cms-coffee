@@ -1,0 +1,2 @@
+ALTER TABLE "entries" ADD COLUMN "search_vector" "tsvector" GENERATED ALWAYS AS (setweight(to_tsvector('spanish', coalesce("title", '')), 'A') || setweight(jsonb_to_tsvector('spanish', "data", '["string"]'), 'B')) STORED;--> statement-breakpoint
+CREATE INDEX "entries_search_idx" ON "entries" USING gin ("search_vector");

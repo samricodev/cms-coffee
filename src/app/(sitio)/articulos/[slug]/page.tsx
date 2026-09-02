@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { JsonLd } from "@/components/site/json-ld";
 import { MediaImage } from "@/components/site/media-image";
 import { Prose } from "@/components/site/prose";
 import { asList, asText, formatDate } from "@/lib/format";
 import { getPublicEntries, getPublicEntry } from "@/lib/public-content";
+import { site } from "@/lib/site";
 
 export async function generateStaticParams() {
   const articulos = await getPublicEntries("articulo", 100);
@@ -51,6 +53,19 @@ export default async function ArticuloPage({
 
   return (
     <article className="mx-auto max-w-2xl space-y-8">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: articulo.title,
+          description:
+            articulo.seoDescription ?? asText(articulo.data.excerpt) ?? undefined,
+          datePublished: articulo.publishedAt?.toISOString(),
+          url: `${site.url}/articulos/${articulo.slug}`,
+          publisher: { "@type": "Organization", name: site.name },
+        }}
+      />
+
       <header className="space-y-3">
         <p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-accent">
           {[asText(articulo.data.seccion), formatDate(articulo.publishedAt)]

@@ -116,7 +116,12 @@ inserta filas en `content_types` y `content_fields`.
 | `/cafes` · `/cafes/:slug` | Los orígenes y su ficha completa, con dónde aparecen |
 | `/articulos` · `/articulos/:slug` | El diario, con el Markdown renderizado |
 | `/eventos` | Agenda, separando próximos de pasados |
+| `/buscar` | Búsqueda de texto completo sobre todo el contenido publicado |
 | `/:slug` | Páginas sueltas (`/quienes-somos`, `/como-llegar`) |
+
+`/cafes` acepta filtros combinables por query string: `?pais=`, `?proceso=`,
+`?tueste=` y `?nota=`. También se publican `/sitemap.xml`, `/robots.txt` y
+`/feed.xml` (RSS del diario), y las fichas llevan datos estructurados JSON-LD.
 
 Las páginas leen de `src/lib/public-content.ts`, que está cacheado, así que se
 prerenderizan y se revalidan solas. El nombre del sitio y el menú se cambian en
@@ -220,6 +225,27 @@ Los archivos se guardan en `storage/media/` (fuera de `public/`, ignorado por
 git) y se sirven por `/api/media/:id` con `Cache-Control: immutable`: el
 contenido de un id nunca cambia. Se admiten imágenes y PDF de hasta 5 MB.
 
+## Búsqueda
+
+`entries.search_vector` es una columna **generada** que Postgres mantiene sola:
+
+```sql
+setweight(to_tsvector('spanish', title), 'A') ||
+setweight(jsonb_to_tsvector('spanish', data, '["string"]'), 'B')
+```
+
+Con índice GIN y consultas por `websearch_to_tsquery('spanish', …)`. Eso da
+gratis lo que un `LIKE` nunca dará: raíces (`vertido` encuentra `vertidos`),
+tildes indiferentes (`cafe` = `café`), frases entre comillas y ordenación por
+relevancia, con el título pesando más que el cuerpo.
+
+## Despliegue
+
+Variables necesarias: `DATABASE_URL`, `SITE_URL` y `SEED_PASSWORD` (solo para
+el seed). Antes de arrancar, `npm run db:migrate`. La carpeta `storage/media`
+debe ser un volumen persistente: si el servidor es efímero, los archivos
+subidos desaparecen y hay que moverlos a un almacenamiento externo.
+
 ## Roadmap
 
 - [x] **Fase 1** — Andamiaje, Postgres en Docker, Drizzle, esquema inicial
@@ -236,4 +262,4 @@ Siguiente, hacia el sitio de la cafetería (ver [docs/alcance.md](docs/alcance.m
 - [x] **Fase 8** — Relaciones entre tipos, con expansión e integridad referencial
 - [x] **Fase 9** — Modelado del sitio: Página, Café, Producto, Evento, y SEO por entrada
 - [x] **Fase 10** — El sitio público: portada, carta, cafés, diario, eventos y páginas
-- [ ] **Fase 11** — Búsqueda, filtros y SEO
+- [x] **Fase 11** — Búsqueda, filtros y SEO

@@ -10,4 +10,5 @@ export const nav = [
   { href: "/articulos", label: "Diario" },
   { href: "/eventos", label: "Eventos" },
   { href: "/quienes-somos", label: "Nosotros" },
+  { href: "/buscar", label: "Buscar" },
 ] as const;

@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { JsonLd } from "@/components/site/json-ld";
 import { MediaImage } from "@/components/site/media-image";
 import { asList, asText, formatMoney } from "@/lib/format";
-import { getPublicEntries, getPublicEntry, getPublicReferences } from "@/lib/public-content";
+import {
+  getPublicEntries,
+  getPublicEntry,
+  getPublicReferences,
+} from "@/lib/public-content";
+import { site } from "@/lib/site";
 
 const FICHA: Array<[string, string]> = [
   ["Tostador", "tostador"],
@@ -50,6 +56,22 @@ export default async function CafePage({ params }: PageProps<"/cafes/[slug]">) {
 
   return (
     <article className="space-y-10">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: cafe.title,
+          description: cafe.seoDescription ?? undefined,
+          url: `${site.url}/cafes/${cafe.slug}`,
+          category: "Café de especialidad",
+          additionalProperty: FICHA.map(([label, key]) => ({
+            "@type": "PropertyValue",
+            name: label,
+            value: asText(cafe.data[key]),
+          })).filter((property) => property.value !== ""),
+        }}
+      />
+
       <header
         className={
           foto
