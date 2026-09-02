@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth/guards";
 import { badRequest, errorResponse, readJson, unprocessable } from "@/lib/http";
 import { getContentTypeByApiId } from "@/lib/content-types";
 import { createEntry, entryDataSchema, listEntries } from "@/lib/entries";
+import { attachExpansion, parseExpand, resolveRelations } from "@/lib/relations";
 import {
   entryBaseSchema,
   listEntriesQuerySchema,
@@ -17,10 +18,22 @@ export async function GET(request: Request, context: Context) {
     const { type: apiId } = await context.params;
     const type = await getContentTypeByApiId(apiId);
 
-    const params = Object.fromEntries(new URL(request.url).searchParams);
-    const query = listEntriesQuerySchema.parse(params);
+    const url = new URL(request.url);
+    const query = listEntriesQuerySchema.parse(
+      Object.fromEntries(url.searchParams),
+    );
 
-    return NextResponse.json(await listEntries(type, query));
+    const page = await listEntries(type, query);
+    const expand = parseExpand(url.searchParams.get("expand"));
+
+    if (!expand) return NextResponse.json(page);
+
+    const resolved = await resolveRelations(type, page.items, expand);
+
+    return NextResponse.json({
+      ...page,
+      items: page.items.map((item) => attachExpansion(type, item, resolved, expand)),
+    });
   } catch (error) {
     return errorResponse(error);
   }

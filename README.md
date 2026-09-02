@@ -138,6 +138,7 @@ Requiere sesión (cookie de `/api/auth/login`).
 | `POST` | `/api/content/:tipo` | Crea una entrada (`{title, slug?, status?, publishedAt?, data}`) |
 | `GET` | `/api/content/:tipo/:id` | Una entrada |
 | `PATCH` | `/api/content/:tipo/:id` | Actualiza; `data` se fusiona, no se reemplaza |
+| — | `?expand=clave` o `?expand=*` | Resuelve las relaciones en `expanded` (listado y detalle) |
 | `DELETE` | `/api/content/:tipo/:id` | Borra |
 | `GET` `POST` | `/api/users` | Cuentas (solo `admin`) |
 
@@ -216,8 +217,8 @@ contenido de un id nunca cambia. Se admiten imágenes y PDF de hasta 5 MB.
 
 Siguiente, hacia el sitio de la cafetería (ver [docs/alcance.md](docs/alcance.md)):
 
-- [ ] **Fase 7** — Tipos de campo que faltan: `media`, `tags`, `richtext`
-- [ ] **Fase 8** — Relaciones entre tipos de contenido
+- [x] **Fase 7** — Tipos de campo `media`, `tags` y `richtext`, y reordenar campos
+- [x] **Fase 8** — Relaciones entre tipos, con expansión e integridad referencial
 - [ ] **Fase 9** — Modelado del sitio: Página, Café, Producto de carta, Evento
 - [ ] **Fase 10** — El sitio público: portada, carta, artículos, ficha de café
 - [ ] **Fase 11** — Búsqueda, filtros y SEO

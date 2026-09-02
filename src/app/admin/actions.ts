@@ -18,6 +18,7 @@ import {
   deleteContentType,
   deleteField,
   getContentTypeByApiId,
+  moveField,
 } from "@/lib/content-types";
 import {
   createEntry,
@@ -104,6 +105,31 @@ function readEntryData(
       continue;
     }
 
+    if (field.type === "relation" && field.multiple) {
+      const values = formData
+        .getAll(field.apiKey)
+        .filter((value): value is string => typeof value === "string" && value !== "");
+
+      if (values.length > 0 || field.required) raw[field.apiKey] = values;
+      continue;
+    }
+
+    if (field.type === "tags") {
+      const values = text(formData, field.apiKey)
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (values.length > 0 || field.required) raw[field.apiKey] = values;
+      continue;
+    }
+
+    if (field.type === "richtext") {
+      const value = text(formData, field.apiKey);
+      if (value.trim() !== "") raw[field.apiKey] = value;
+      continue;
+    }
+
     const value = text(formData, field.apiKey).trim();
     if (value !== "") raw[field.apiKey] = value;
   }
@@ -135,10 +161,19 @@ export async function createContentTypeAction(
   redirect(`/admin/types/${id}`);
 }
 
-export async function deleteContentTypeAction(id: string) {
-  await requireAdmin();
-  await deleteContentType(id);
-  refresh("/admin", "/admin/types");
+export async function deleteContentTypeAction(
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin();
+    await deleteContentType(id);
+    refresh("/admin", "/admin/types");
+  } catch (error) {
+    return toFormState(error);
+  }
+
   redirect("/admin/types");
 }
 
@@ -155,11 +190,15 @@ export async function addFieldAction(
       .map((choice) => choice.trim())
       .filter(Boolean);
 
+    const targetTypeId = text(formData, "targetTypeId");
+
     const input = createFieldSchema.parse({
       label: text(formData, "label"),
       apiKey: text(formData, "apiKey"),
       type: text(formData, "type"),
       required: formData.get("required") !== null,
+      multiple: formData.get("multiple") !== null,
+      targetTypeId: targetTypeId === "" ? undefined : targetTypeId,
       choices,
     });
 
@@ -169,6 +208,16 @@ export async function addFieldAction(
   } catch (error) {
     return toFormState(error, formValues(formData));
   }
+}
+
+export async function moveFieldAction(
+  contentTypeId: string,
+  fieldId: string,
+  direction: "up" | "down",
+) {
+  await requireAdmin();
+  await moveField(contentTypeId, fieldId, direction);
+  refresh("/admin/types", `/admin/types/${contentTypeId}`);
 }
 
 export async function deleteFieldAction(contentTypeId: string, fieldId: string) {
@@ -234,11 +283,21 @@ export async function updateEntryAction(
   }
 }
 
-export async function deleteEntryAction(apiId: string, id: string) {
-  const actor = await requireUser();
-  const type = await getContentTypeByApiId(apiId);
-  await deleteEntry(type, id, actor);
-  refresh("/admin", `/admin/content/${apiId}`);
+export async function deleteEntryAction(
+  apiId: string,
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  try {
+    const actor = await requireUser();
+    const type = await getContentTypeByApiId(apiId);
+    await deleteEntry(type, id, actor);
+    refresh("/admin", `/admin/content/${apiId}`);
+  } catch (error) {
+    return toFormState(error);
+  }
+
   redirect(`/admin/content/${apiId}`);
 }
 

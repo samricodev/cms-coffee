@@ -10,20 +10,27 @@ import {
   getEntry,
   updateEntry,
 } from "@/lib/entries";
+import { attachExpansion, parseExpand, resolveRelations } from "@/lib/relations";
 import { updateEntryBaseSchema } from "@/lib/validation/content";
 
 type Context = { params: Promise<{ type: string; id: string }> };
 
 const idSchema = z.uuid();
 
-export async function GET(_request: Request, context: Context) {
+export async function GET(request: Request, context: Context) {
   try {
     await requireUser();
     const { type: apiId, id } = await context.params;
     if (!idSchema.safeParse(id).success) return badRequest("El id debe ser un UUID");
 
     const type = await getContentTypeByApiId(apiId);
-    return NextResponse.json(await getEntry(type, id));
+    const entry = await getEntry(type, id);
+
+    const expand = parseExpand(new URL(request.url).searchParams.get("expand"));
+    if (!expand) return NextResponse.json(entry);
+
+    const resolved = await resolveRelations(type, [entry], expand);
+    return NextResponse.json(attachExpansion(type, entry, resolved, expand));
   } catch (error) {
     return errorResponse(error);
   }

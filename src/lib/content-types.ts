@@ -139,11 +139,33 @@ export async function createContentType(
   return created;
 }
 
+const PG_FOREIGN_KEY_VIOLATION = "23503";
+
+function isForeignKeyViolation(error: unknown): boolean {
+  let current: unknown = error;
+  while (current instanceof Error) {
+    if ((current as { code?: string }).code === PG_FOREIGN_KEY_VIOLATION) return true;
+    current = current.cause;
+  }
+  return false;
+}
+
 export async function deleteContentType(id: string): Promise<void> {
-  const [deleted] = await db
-    .delete(contentTypes)
-    .where(eq(contentTypes.id, id))
-    .returning({ id: contentTypes.id });
+  let deleted: { id: string } | undefined;
+
+  try {
+    [deleted] = await db
+      .delete(contentTypes)
+      .where(eq(contentTypes.id, id))
+      .returning({ id: contentTypes.id });
+  } catch (error) {
+    if (isForeignKeyViolation(error)) {
+      throw conflict(
+        "Otro tipo de contenido tiene un campo de relación que apunta a este. Quita ese campo primero.",
+      );
+    }
+    throw error;
+  }
 
   if (!deleted) throw notFound(`No existe el tipo de contenido ${id}`);
   revalidateTag(TYPES_TAG, "max");
@@ -159,6 +181,10 @@ export async function addField(
     throw conflict(`El campo "${input.apiKey}" ya existe en ${type.name}`);
   }
 
+  if (input.type === "relation" && input.targetTypeId) {
+    await getContentTypeById(input.targetTypeId);
+  }
+
   const [created] = await db
     .insert(contentFields)
     .values({
@@ -168,12 +194,42 @@ export async function addField(
       type: input.type,
       required: input.required,
       choices: input.type === "select" ? (input.choices ?? []) : null,
+      targetTypeId: input.type === "relation" ? input.targetTypeId : null,
+      multiple: input.type === "relation" ? input.multiple : false,
       position: type.fields.length,
     })
     .returning();
 
   revalidateTag(contentTag(type.apiId), "max");
   return created;
+}
+
+export async function moveField(
+  contentTypeId: string,
+  fieldId: string,
+  direction: "up" | "down",
+): Promise<void> {
+  const type = await getContentTypeById(contentTypeId);
+  const index = type.fields.findIndex((field) => field.id === fieldId);
+
+  if (index === -1) throw notFound(`No existe el campo ${fieldId}`);
+
+  const target = direction === "up" ? index - 1 : index + 1;
+  if (target < 0 || target >= type.fields.length) return;
+
+  const ordered = [...type.fields];
+  [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
+
+  await db.transaction(async (tx) => {
+    for (const [position, field] of ordered.entries()) {
+      await tx
+        .update(contentFields)
+        .set({ position })
+        .where(eq(contentFields.id, field.id));
+    }
+  });
+
+  revalidateTag(contentTag(type.apiId), "max");
 }
 
 export async function deleteField(

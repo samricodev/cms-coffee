@@ -24,13 +24,19 @@ export const createFieldSchema = z
     type: z.enum([
       "text",
       "textarea",
+      "richtext",
       "number",
       "boolean",
       "date",
       "select",
+      "tags",
+      "media",
+      "relation",
     ]),
     required: z.boolean().default(false),
     choices: z.array(z.string().trim().min(1)).optional(),
+    targetTypeId: z.uuid().optional(),
+    multiple: z.boolean().default(false),
   })
   .superRefine((value, ctx) => {
     if (value.type === "select" && (value.choices?.length ?? 0) === 0) {
@@ -38,6 +44,14 @@ export const createFieldSchema = z
         code: "custom",
         path: ["choices"],
         message: "Un campo de selección necesita al menos una opción",
+      });
+    }
+
+    if (value.type === "relation" && !value.targetTypeId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["targetTypeId"],
+        message: "Elige a qué tipo de contenido apunta la relación",
       });
     }
   });
@@ -89,6 +103,36 @@ function schemaForField(field: ContentField): z.ZodTypeAny {
         (field.choices ?? []) as [string, ...string[]],
         `${field.label}: opción no válida`,
       );
+    case "richtext": {
+      const base = z.string().max(50000);
+      return field.required ? base.min(1, `${field.label} es obligatorio`) : base;
+    }
+    case "tags": {
+      const base = z
+        .array(z.string().trim().min(1).max(60), {
+          error: `${field.label} debe ser una lista de valores`,
+        })
+        .max(30, `${field.label}: máximo 30 valores`)
+        .transform((values) => [...new Set(values)]);
+      return field.required
+        ? base.refine(
+            (values) => values.length > 0,
+            `${field.label} necesita al menos un valor`,
+          )
+        : base;
+    }
+    case "media":
+      return z.uuid(`${field.label}: selecciona un archivo de la biblioteca`);
+    case "relation": {
+      const id = z.uuid(`${field.label}: referencia no válida`);
+
+      if (!field.multiple) return id;
+
+      return z
+        .array(id, { error: `${field.label} debe ser una lista de referencias` })
+        .max(50)
+        .transform((values) => [...new Set(values)]);
+    }
   }
 }
 

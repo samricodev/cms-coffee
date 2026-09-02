@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -8,6 +9,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 
@@ -20,6 +22,10 @@ export const fieldType = pgEnum("field_type", [
   "boolean",
   "date",
   "select",
+  "media",
+  "tags",
+  "richtext",
+  "relation",
 ]);
 
 export const users = pgTable(
@@ -79,6 +85,11 @@ export const contentFields = pgTable(
     required: boolean("required").notNull().default(false),
     position: integer("position").notNull().default(0),
     choices: jsonb("choices").$type<string[]>(),
+    targetTypeId: uuid("target_type_id").references(
+      (): AnyPgColumn => contentTypes.id,
+      { onDelete: "restrict" },
+    ),
+    multiple: boolean("multiple").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -112,6 +123,7 @@ export const entries = pgTable(
   },
   (table) => [
     uniqueIndex("entries_type_slug_idx").on(table.contentTypeId, table.slug),
+    index("entries_data_idx").using("gin", table.data),
   ],
 );
 

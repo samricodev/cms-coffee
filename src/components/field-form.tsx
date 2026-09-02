@@ -8,7 +8,15 @@ import { SubmitButton } from "@/components/submit-button";
 import { input, label } from "@/components/ui";
 import { idleForm, issueOf, valueOf } from "@/lib/form";
 
-export function FieldForm({ contentTypeId }: { contentTypeId: string }) {
+type TargetOption = { id: string; name: string };
+
+export function FieldForm({
+  contentTypeId,
+  targets,
+}: {
+  contentTypeId: string;
+  targets: TargetOption[];
+}) {
   const [state, action] = useActionState(
     addFieldAction.bind(null, contentTypeId),
     idleForm,
@@ -71,10 +79,14 @@ export function FieldForm({ contentTypeId }: { contentTypeId: string }) {
           >
             <option value="text">Texto</option>
             <option value="textarea">Texto largo</option>
+            <option value="richtext">Markdown</option>
             <option value="number">Número</option>
             <option value="boolean">Sí / No</option>
             <option value="date">Fecha</option>
             <option value="select">Selección</option>
+            <option value="tags">Etiquetas</option>
+            <option value="media">Archivo</option>
+            <option value="relation">Relación</option>
           </select>
         </div>
 
@@ -89,6 +101,41 @@ export function FieldForm({ contentTypeId }: { contentTypeId: string }) {
           </label>
         </div>
       </div>
+
+      {type === "relation" ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={label} htmlFor="field-target">
+              Apunta a
+            </label>
+            <select
+              className={input}
+              id="field-target"
+              name="targetTypeId"
+              defaultValue={valueOf(state, "targetTypeId")}
+            >
+              <option value="">—</option>
+              {targets.map((target) => (
+                <option key={target.id} value={target.id}>
+                  {target.name}
+                </option>
+              ))}
+            </select>
+            <FieldError message={issueOf(state, "targetTypeId")} />
+          </div>
+
+          <div className="flex items-end">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="multiple"
+                defaultChecked={valueOf(state, "multiple") === "on"}
+              />{" "}
+              Permite varias
+            </label>
+          </div>
+        </div>
+      ) : null}
 
       {type === "select" ? (
         <div>

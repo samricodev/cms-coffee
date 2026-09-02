@@ -1,8 +1,25 @@
-import { and, count, desc, eq, getTableColumns, ilike, or, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  ilike,
+  or,
+  sql,
+} from "drizzle-orm";
 import { revalidateTag } from "next/cache";
 
 import { db } from "@/db";
-import { entries, users, type ContentTypeWithFields, type Entry } from "@/db/schema";
+import {
+  contentFields,
+  contentTypes,
+  entries,
+  users,
+  type ContentField,
+  type ContentTypeWithFields,
+  type Entry,
+} from "@/db/schema";
 import { assertCanModify } from "@/lib/auth/guards";
 import type { SessionUser } from "@/lib/auth/session";
 import { conflict, notFound } from "@/lib/errors";
@@ -166,6 +183,50 @@ export async function updateEntry(
   }
 }
 
+export type EntrySummary = {
+  id: string;
+  title: string;
+  slug: string;
+  status: Entry["status"];
+  typeName: string;
+  typeApiId: string;
+};
+
+function relationMatch(field: ContentField, entryId: string) {
+  const shape = field.multiple
+    ? { [field.apiKey]: [entryId] }
+    : { [field.apiKey]: entryId };
+
+  return and(
+    eq(entries.contentTypeId, field.contentTypeId),
+    sql`${entries.data} @> ${JSON.stringify(shape)}::jsonb`,
+  );
+}
+
+export async function listReferencing(entryId: string): Promise<EntrySummary[]> {
+  const relations = await db
+    .select()
+    .from(contentFields)
+    .where(eq(contentFields.type, "relation"));
+
+  if (relations.length === 0) return [];
+
+  return db
+    .select({
+      id: entries.id,
+      title: entries.title,
+      slug: entries.slug,
+      status: entries.status,
+      typeName: contentTypes.name,
+      typeApiId: contentTypes.apiId,
+    })
+    .from(entries)
+    .innerJoin(contentTypes, eq(contentTypes.id, entries.contentTypeId))
+    .where(or(...relations.map((field) => relationMatch(field, entryId))))
+    .orderBy(desc(entries.createdAt))
+    .limit(50);
+}
+
 export async function deleteEntry(
   type: ContentTypeWithFields,
   id: string,
@@ -173,6 +234,20 @@ export async function deleteEntry(
 ): Promise<void> {
   const current = await getEntry(type, id);
   assertCanModify(actor, current);
+
+  const referencing = await listReferencing(id);
+
+  if (referencing.length > 0) {
+    const names = referencing
+      .slice(0, 3)
+      .map((item) => `"${item.title}"`)
+      .join(", ");
+
+    throw conflict(
+      `No se puede borrar: ${referencing.length} entrada(s) la referencian (${names}). Quita esas referencias primero.`,
+    );
+  }
+
   await db.delete(entries).where(eq(entries.id, id));
   revalidateTag(contentTag(type.apiId), "max");
 }

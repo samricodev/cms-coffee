@@ -3,12 +3,13 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { deleteEntryAction, updateEntryAction } from "@/app/admin/actions";
+import { DeleteForm } from "@/components/delete-form";
 import { EntryForm } from "@/components/entry-form";
-import { SubmitButton } from "@/components/submit-button";
-import { card, danger, secondary } from "@/components/ui";
+import { card, secondary } from "@/components/ui";
 import { assertCanModify, requireUser } from "@/lib/auth/guards";
 import { getContentTypeByApiId } from "@/lib/content-types";
-import { getEntry } from "@/lib/entries";
+import { getEntry, listReferencing } from "@/lib/entries";
+import { listRelationOptions } from "@/lib/relations";
 import { AppError } from "@/lib/errors";
 
 export const instant = false;
@@ -30,6 +31,8 @@ export default async function EditEntryPage({
     if (error instanceof AppError && error.code === "not_found") notFound();
     throw error;
   });
+
+  const referencing = await listReferencing(entry.id);
 
   let canModify = true;
   try {
@@ -68,14 +71,38 @@ export default async function EditEntryPage({
         action={updateEntryAction.bind(null, apiId, entry.id)}
         fields={type.fields}
         entry={entry}
+        relationOptions={await listRelationOptions(type)}
         submitLabel="Guardar cambios"
       />
 
-      <form action={deleteEntryAction.bind(null, apiId, entry.id)}>
-        <SubmitButton className={danger} pendingLabel="Borrando…">
-          Borrar entrada
-        </SubmitButton>
-      </form>
+      {referencing.length > 0 ? (
+        <section className={`${card} space-y-2`}>
+          <h2 className="text-sm font-medium">Referenciada por</h2>
+          <ul className="space-y-1 text-sm">
+            {referencing.map((item) => (
+              <li key={item.id}>
+                <Link
+                  href={`/admin/content/${item.typeApiId}/${item.id}`}
+                  className="hover:underline"
+                >
+                  {item.title}
+                </Link>
+                <span className="ml-2 text-xs text-black/50 dark:text-white/50">
+                  {item.typeName}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-black/60 dark:text-white/60">
+            Mientras existan estas referencias, la entrada no se puede borrar.
+          </p>
+        </section>
+      ) : null}
+
+      <DeleteForm
+        action={deleteEntryAction.bind(null, apiId, entry.id)}
+        label="Borrar entrada"
+      />
     </div>
   );
 }

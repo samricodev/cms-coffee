@@ -1,8 +1,14 @@
-import { and, desc, eq, isNotNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, lte } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
-import { contentTypes, entries } from "@/db/schema";
+import {
+  contentFields,
+  contentTypes,
+  entries,
+  type ContentTypeWithFields,
+} from "@/db/schema";
+import { attachExpansion, resolveRelations, type ExpandedEntry } from "@/lib/relations";
 
 export const contentTag = (apiId: string) => `content:${apiId}`;
 export const TYPES_TAG = "content-types";
@@ -13,7 +19,26 @@ export type PublicEntry = {
   slug: string;
   publishedAt: Date | null;
   data: Record<string, unknown>;
+  expanded?: Record<string, ExpandedEntry | ExpandedEntry[] | null>;
 };
+
+async function loadType(apiId: string): Promise<ContentTypeWithFields | null> {
+  const [type] = await db
+    .select()
+    .from(contentTypes)
+    .where(eq(contentTypes.apiId, apiId))
+    .limit(1);
+
+  if (!type) return null;
+
+  const fields = await db
+    .select()
+    .from(contentFields)
+    .where(eq(contentFields.contentTypeId, type.id))
+    .orderBy(asc(contentFields.position));
+
+  return { ...type, fields };
+}
 
 export async function getPublicTypes() {
   "use cache";
@@ -39,15 +64,10 @@ export async function getPublicEntries(
   cacheLife("minutes");
   cacheTag(contentTag(apiId));
 
-  const [type] = await db
-    .select({ id: contentTypes.id })
-    .from(contentTypes)
-    .where(eq(contentTypes.apiId, apiId))
-    .limit(1);
-
+  const type = await loadType(apiId);
   if (!type) return [];
 
-  return db
+  const rows = await db
     .select({
       id: entries.id,
       title: entries.title,
@@ -66,6 +86,14 @@ export async function getPublicEntries(
     )
     .orderBy(desc(entries.publishedAt))
     .limit(limit);
+
+  const resolved = await resolveRelations(type, rows, "all", {
+    publishedOnly: true,
+  });
+
+  if (resolved.size === 0) return rows;
+
+  return rows.map((row) => attachExpansion(type, row, resolved, "all"));
 }
 
 export async function getPublicEntry(
@@ -76,12 +104,7 @@ export async function getPublicEntry(
   cacheLife("minutes");
   cacheTag(contentTag(apiId));
 
-  const [type] = await db
-    .select({ id: contentTypes.id })
-    .from(contentTypes)
-    .where(eq(contentTypes.apiId, apiId))
-    .limit(1);
-
+  const type = await loadType(apiId);
   if (!type) return null;
 
   const [entry] = await db
@@ -104,5 +127,13 @@ export async function getPublicEntry(
     )
     .limit(1);
 
-  return entry ?? null;
+  if (!entry) return null;
+
+  const resolved = await resolveRelations(type, [entry], "all", {
+    publishedOnly: true,
+  });
+
+  return resolved.size === 0
+    ? entry
+    : attachExpansion(type, entry, resolved, "all");
 }

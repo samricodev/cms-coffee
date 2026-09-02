@@ -4,6 +4,7 @@ import { createEntryAction } from "@/app/admin/actions";
 import { EntryForm } from "@/components/entry-form";
 import { requireUser } from "@/lib/auth/guards";
 import { getContentTypeByApiId } from "@/lib/content-types";
+import { listRelationOptions } from "@/lib/relations";
 import { AppError } from "@/lib/errors";
 
 export const instant = false;
@@ -25,6 +26,7 @@ export default async function NewEntryPage({
       <EntryForm
         action={createEntryAction.bind(null, apiId)}
         fields={type.fields}
+        relationOptions={await listRelationOptions(type)}
         submitLabel="Crear"
       />
     </div>

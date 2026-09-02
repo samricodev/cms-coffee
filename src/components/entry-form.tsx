@@ -3,26 +3,105 @@
 import { useActionState } from "react";
 
 import { FieldError, FormMessage } from "@/components/form-message";
+import { MediaPicker } from "@/components/media-picker";
+import { RichTextInput } from "@/components/rich-text-input";
+import { TagsInput } from "@/components/tags-input";
 import { SubmitButton } from "@/components/submit-button";
 import { input, label } from "@/components/ui";
 import { idleForm, issueOf, valueOf, type FormState } from "@/lib/form";
 import type { ContentField, Entry } from "@/db/schema";
+import type { RelationOption } from "@/lib/relations";
 
 type Props = {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   fields: ContentField[];
   entry?: Entry;
   submitLabel: string;
+  relationOptions?: Record<string, RelationOption[]>;
 };
+
+function asText(value: unknown): string {
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  return "";
+}
+
+function RelationField({
+  field,
+  value,
+  options,
+}: {
+  field: ContentField;
+  value: unknown;
+  options: RelationOption[];
+}) {
+  const selected = new Set(
+    Array.isArray(value) ? value.map(String) : value ? [String(value)] : [],
+  );
+
+  if (options.length === 0) {
+    return (
+      <p className="text-sm text-black/60 dark:text-white/60">
+        No hay entradas del tipo enlazado todavía.
+      </p>
+    );
+  }
+
+  if (!field.multiple) {
+    return (
+      <select
+        id={`field-${field.apiKey}`}
+        name={field.apiKey}
+        required={field.required}
+        className={input}
+        defaultValue={[...selected][0] ?? ""}
+      >
+        <option value="">—</option>
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.title}
+            {option.status === "draft" ? " (borrador)" : ""}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  return (
+    <ul className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-black/15 p-2 dark:border-white/20">
+      {options.map((option) => (
+        <li key={option.id}>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name={field.apiKey}
+              value={option.id}
+              defaultChecked={selected.has(option.id)}
+              className="h-4 w-4"
+            />
+            {option.title}
+            {option.status === "draft" ? (
+              <span className="text-xs text-black/50 dark:text-white/50">
+                borrador
+              </span>
+            ) : null}
+          </label>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function DynamicField({
   field,
   value,
   error,
+  options,
 }: {
   field: ContentField;
   value: unknown;
   error?: string;
+  options: RelationOption[];
 }) {
   const id = `field-${field.apiKey}`;
   const common = { id, name: field.apiKey, required: field.required };
@@ -34,11 +113,19 @@ function DynamicField({
         {field.required ? " *" : ""}
       </label>
 
-      {field.type === "textarea" ? (
+      {field.type === "relation" ? (
+        <RelationField field={field} value={value} options={options} />
+      ) : field.type === "richtext" ? (
+        <RichTextInput id={id} name={field.apiKey} defaultValue={asText(value)} />
+      ) : field.type === "tags" ? (
+        <TagsInput id={id} name={field.apiKey} defaultValue={asText(value)} />
+      ) : field.type === "media" ? (
+        <MediaPicker id={id} name={field.apiKey} defaultValue={asText(value)} />
+      ) : field.type === "textarea" ? (
         <textarea
           {...common}
           className={`${input} min-h-32`}
-          defaultValue={typeof value === "string" ? value : ""}
+          defaultValue={asText(value)}
         />
       ) : field.type === "boolean" ? (
         <input
@@ -49,11 +136,7 @@ function DynamicField({
           className="h-4 w-4"
         />
       ) : field.type === "select" ? (
-        <select
-          {...common}
-          className={input}
-          defaultValue={typeof value === "string" ? value : ""}
-        >
+        <select {...common} className={input} defaultValue={asText(value)}>
           <option value="">—</option>
           {(field.choices ?? []).map((choice) => (
             <option key={choice} value={choice}>
@@ -69,11 +152,7 @@ function DynamicField({
             field.type === "number" ? "number" : field.type === "date" ? "date" : "text"
           }
           step={field.type === "number" ? "any" : undefined}
-          defaultValue={
-            typeof value === "string" || typeof value === "number"
-              ? String(value)
-              : ""
-          }
+          defaultValue={asText(value)}
         />
       )}
 
@@ -82,7 +161,13 @@ function DynamicField({
   );
 }
 
-export function EntryForm({ action, fields, entry, submitLabel }: Props) {
+export function EntryForm({
+  action,
+  fields,
+  entry,
+  submitLabel,
+  relationOptions = {},
+}: Props) {
   const [state, formAction] = useActionState(action, idleForm);
   const data = entry?.data ?? {};
 
@@ -122,8 +207,9 @@ export function EntryForm({ action, fields, entry, submitLabel }: Props) {
         <DynamicField
           key={field.id}
           field={field}
+          options={relationOptions[field.apiKey] ?? []}
           value={
-            state.status === "error" && state.values
+            state.status === "error" && state.values && field.type !== "relation"
               ? field.type === "boolean"
                 ? state.values[field.apiKey] === "on"
                 : (state.values[field.apiKey] ?? "")
