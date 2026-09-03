@@ -42,6 +42,8 @@ npm run dev                  # http://localhost:3000
 | `npm run db:migrate` | Aplica las migraciones pendientes |
 | `npm run db:seed` | Inserta datos de ejemplo (idempotente) |
 | `npm run db:studio` | Explorador visual de la base de datos |
+| `npm test` | Pruebas (prepara y migra su propia base antes) |
+| `npm run test:watch` | Pruebas en modo continuo |
 
 ## Estructura
 
@@ -244,6 +246,24 @@ Con índice GIN y consultas por `websearch_to_tsquery('spanish', …)`. Eso da
 gratis lo que un `LIKE` nunca dará: raíces (`vertido` encuentra `vertidos`),
 tildes indiferentes (`cafe` = `café`), frases entre comillas y ordenación por
 relevancia, con el título pesando más que el cuerpo.
+
+## Pruebas
+
+```bash
+npm test
+```
+
+46 pruebas en dos capas. Las **unitarias** no tocan la base: esquema dinámico de
+validación, reglas de propiedad, slugs y renderizado de Markdown. Las de
+**integración** corren contra una base aparte (`cms_test`, creada y migrada por
+`npm test`), y cubren lo que solo se rompe de verdad: unicidad de slug por tipo,
+que una actualización parcial no despublique, que un editor no toque contenido
+ajeno, que no se borre lo que otros referencian, y que borradores y entradas
+programadas no lleguen a la API pública.
+
+Nunca tocan la base de desarrollo: `tests/setup.ts` apunta `DATABASE_URL` a la
+de pruebas antes de que se cargue el cliente, y las funciones de caché y cookies
+de Next se sustituyen por no-ops porque solo existen dentro de una petición.
 
 ## Despliegue
 

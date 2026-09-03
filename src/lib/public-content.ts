@@ -97,8 +97,6 @@ export async function getPublicEntries(
     publishedOnly: true,
   });
 
-  if (resolved.size === 0) return rows;
-
   return rows.map((row) => attachExpansion(type, row, resolved, "all"));
 }
 
@@ -141,9 +139,7 @@ export async function getPublicEntry(
     publishedOnly: true,
   });
 
-  return resolved.size === 0
-    ? entry
-    : attachExpansion(type, entry, resolved, "all");
+  return attachExpansion(type, entry, resolved, "all");
 }
 
 export type PublicReference = {

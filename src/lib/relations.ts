@@ -75,15 +75,23 @@ export async function resolveRelations(
   return new Map(found.map((row) => [row.id, row]));
 }
 
+/**
+ * Si el tipo tiene relaciones, la respuesta SIEMPRE lleva `expanded`, aunque
+ * ninguna se haya podido resolver. Que la clave aparezca o no según los datos
+ * obligaría al cliente a comprobar dos formas distintas del mismo recurso.
+ */
 export function attachExpansion<T extends { data: Record<string, unknown> }>(
   type: ContentTypeWithFields,
   row: T,
   resolved: Map<string, ExpandedEntry>,
   keys: ExpandKeys,
-): T & { expanded: Record<string, ExpandedEntry | ExpandedEntry[] | null> } {
+): T & { expanded?: Record<string, ExpandedEntry | ExpandedEntry[] | null> } {
+  const fields = wanted(type, keys);
+  if (fields.length === 0) return row;
+
   const expanded: Record<string, ExpandedEntry | ExpandedEntry[] | null> = {};
 
-  for (const field of wanted(type, keys)) {
+  for (const field of fields) {
     const ids = idsFrom(row.data[field.apiKey]);
 
     expanded[field.apiKey] = field.multiple
