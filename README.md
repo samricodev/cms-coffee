@@ -43,6 +43,8 @@ npm run dev                  # http://localhost:3000
 | `npm run db:seed` | Inserta datos de ejemplo (idempotente) |
 | `npm run db:studio` | Explorador visual de la base de datos |
 | `npm test` | Pruebas (prepara y migra su propia base antes) |
+| `npm run backup` | Copia de la base y de los archivos subidos |
+| `npm run backup:verify` | Simulacro de restauración de la copia más reciente |
 | `npm run test:watch` | Pruebas en modo continuo |
 
 ## Estructura
@@ -280,6 +282,9 @@ de pruebas antes de que se cargue el cliente, y las funciones de caché y cookie
 de Next se sustituyen por no-ops porque solo existen dentro de una petición.
 
 ## Despliegue
+
+Copias de seguridad: ver [docs/copias.md](docs/copias.md). Hay que sacarlas de
+la máquina antes de considerar esto desplegado.
 
 Variables necesarias: `DATABASE_URL`, `SITE_URL` y `SEED_PASSWORD` (solo para
 el seed). Antes de arrancar, `npm run db:migrate`. La carpeta `storage/media`

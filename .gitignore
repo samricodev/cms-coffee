@@ -44,3 +44,6 @@ next-env.d.ts
 # archivos subidos
 /storage
 /docs
+
+# copias de seguridad
+/backups
