@@ -2,6 +2,7 @@ import { unstable_rethrow } from "next/navigation";
 import { ZodError } from "zod";
 
 import { AppError } from "@/lib/errors";
+import { logError } from "@/lib/log";
 
 export type FormState =
   | { status: "idle" }
@@ -59,6 +60,11 @@ export function toFormState(
     return { status: "error", message: error.message, values };
   }
 
-  console.error("[form] error no controlado", error);
-  return { status: "error", message: "Error interno del servidor", values };
+  const id = logError(error, { origen: "formulario" });
+
+  return {
+    status: "error",
+    message: `Error interno del servidor. Referencia: ${id}`,
+    values,
+  };
 }

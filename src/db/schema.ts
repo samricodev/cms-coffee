@@ -142,6 +142,18 @@ export const entries = pgTable(
   ],
 );
 
+export const loginAttempts = pgTable(
+  "login_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    key: text("key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("login_attempts_key_idx").on(table.key, table.createdAt)],
+);
+
 export const media = pgTable("media", {
   id: uuid("id").primaryKey().defaultRandom(),
   filename: text("filename").notNull(),
@@ -164,4 +176,5 @@ export type FieldType = ContentField["type"];
 export type Entry = typeof entries.$inferSelect;
 export type ContentTypeWithFields = ContentType & { fields: ContentField[] };
 export type Media = typeof media.$inferSelect;
+export type LoginAttempt = typeof loginAttempts.$inferSelect;
 export type Session = typeof sessions.$inferSelect;

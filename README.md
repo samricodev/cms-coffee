@@ -250,6 +250,33 @@ gratis lo que un `LIKE` nunca dará: raíces (`vertido` encuentra `vertidos`),
 tildes indiferentes (`cafe` = `café`), frases entre comillas y ordenación por
 relevancia, con el título pesando más que el cuerpo.
 
+## Límite de intentos y registro de errores
+
+El login aplica **dos límites en paralelo**, con propósitos distintos: 5 fallos
+por email en 15 minutos (frena adivinar la contraseña de una cuenta) y 20 por
+IP en la misma ventana (frena barrer muchas cuentas desde el mismo sitio). Se
+responde `429` con cabecera `Retry-After`, y un acierto borra los fallos de ese
+email para que nadie quede fuera por sus propias erratas.
+
+Los intentos viven en Postgres, no en memoria: así sobreviven a un reinicio y
+funcionan con más de una instancia. El límite por IP depende de
+`x-forwarded-for`, que **solo es fiable detrás de un proxy que la reescriba**;
+el límite por email, que no se puede falsificar, es el que de verdad protege una
+cuenta.
+
+Los errores inesperados se registran como **una línea de JSON por evento** con
+un identificador corto, y ese mismo identificador se le devuelve a quien sufrió
+el fallo:
+
+```json
+{"nivel":"error","id":"c92d5486","hora":"…","origen":"api",
+ "error":{"nombre":"Error","mensaje":"ENOENT: …","codigo":"ENOENT","causa":{…}}}
+```
+
+Así «me salió el error c92d5486» es una línea concreta y no una búsqueda a
+ciegas por la hora aproximada. La `causa` se conserva porque es donde viaja el
+error real cuando Drizzle envuelve al driver de Postgres.
+
 ## Cuentas y contraseñas
 
 - **Cambiar la propia**: pide la actual y **cierra el resto de sesiones**,

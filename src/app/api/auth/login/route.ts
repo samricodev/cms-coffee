@@ -6,6 +6,12 @@ import {
   createSession,
   sessionCookieOptions,
 } from "@/lib/auth/session";
+import {
+  guardLogin,
+  limpiarFallosLogin,
+  registrarFalloLogin,
+} from "@/lib/auth/rate-limit";
+import { clientIp } from "@/lib/request";
 import { authenticate } from "@/lib/users";
 import { loginSchema } from "@/lib/validation/auth";
 
@@ -18,7 +24,18 @@ export async function POST(request: Request) {
     const parsed = loginSchema.safeParse(payload);
     if (!parsed.success) return unprocessable(parsed.error);
 
-    const user = await authenticate(parsed.data);
+    const ip = await clientIp();
+    await guardLogin(parsed.data.email, ip);
+
+    let user;
+    try {
+      user = await authenticate(parsed.data);
+    } catch (error) {
+      await registrarFalloLogin(parsed.data.email, ip);
+      throw error;
+    }
+
+    await limpiarFallosLogin(parsed.data.email);
     const { token, expiresAt } = await createSession(user.id);
 
     const response = NextResponse.json({ user });

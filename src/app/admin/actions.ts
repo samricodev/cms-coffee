@@ -13,6 +13,12 @@ import {
 } from "@/lib/auth/session";
 import { requireAdmin, requireUser } from "@/lib/auth/guards";
 import {
+  guardLogin,
+  limpiarFallosLogin,
+  registrarFalloLogin,
+} from "@/lib/auth/rate-limit";
+import { clientIp } from "@/lib/request";
+import {
   authenticate,
   changeOwnPassword,
   createUser,
@@ -68,7 +74,18 @@ export async function loginAction(
       password: text(formData, "password"),
     });
 
-    const user = await authenticate(input);
+    const ip = await clientIp();
+    await guardLogin(input.email, ip);
+
+    let user;
+    try {
+      user = await authenticate(input);
+    } catch (error) {
+      await registrarFalloLogin(input.email, ip);
+      throw error;
+    }
+
+    await limpiarFallosLogin(input.email);
     const { token, expiresAt } = await createSession(user.id);
     (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
   } catch (error) {

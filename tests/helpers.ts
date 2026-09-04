@@ -12,7 +12,7 @@ import type { SessionUser } from "@/lib/auth/session";
 
 export async function limpiarBase() {
   await db.execute(
-    sql`truncate table "entries", "content_fields", "content_types", "media", "sessions", "users" restart identity cascade`,
+    sql`truncate table "entries", "content_fields", "content_types", "media", "sessions", "login_attempts", "users" restart identity cascade`,
   );
 }
 
