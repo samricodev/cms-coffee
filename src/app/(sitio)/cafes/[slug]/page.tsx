@@ -114,7 +114,7 @@ export default async function CafePage({ params }: PageProps<"/cafes/[slug]">) {
 
             return (
               <div key={key} className="flex gap-3 border-b border-line py-1.5">
-                <dt className="w-28 shrink-0 font-mono text-xs uppercase tracking-[0.1em] text-muted">
+                <dt className="w-28 shrink-0 font-mono text-xs uppercase tracking-widest text-muted">
                   {label}
                 </dt>
                 <dd className="text-sm">

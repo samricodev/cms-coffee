@@ -79,7 +79,7 @@ export default async function ArticuloPage({
         <MediaImage
           id={articulo.data.portada}
           alt={articulo.title}
-          className="aspect-16/9 w-full"
+          className="aspect-video w-full"
           sizes="(max-width: 768px) 100vw, 42rem"
           priority
         />
