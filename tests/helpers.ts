@@ -19,10 +19,11 @@ export async function limpiarBase() {
 export async function crearUsuario(
   role: "admin" | "editor" = "editor",
   email = `${role}-${crypto.randomUUID()}@test.local`,
+  name = email.split("@")[0]!,
 ): Promise<SessionUser> {
   const [user] = await db
     .insert(users)
-    .values({ email, name: role, passwordHash: "no-usado", role })
+    .values({ email, name, passwordHash: "no-usado", role })
     .returning({
       id: users.id,
       email: users.email,

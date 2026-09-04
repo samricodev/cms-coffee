@@ -45,6 +45,7 @@ import {
   createContentTypeSchema,
   createFieldSchema,
   entryBaseSchema,
+  expectedUpdatedAtSchema,
 } from "@/lib/validation/content";
 import { formValues, toFormState, type FormState } from "@/lib/form";
 import {
@@ -195,11 +196,11 @@ export async function createContentTypeAction(
 export async function deleteContentTypeAction(
   id: string,
   _prev: FormState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<FormState> {
   try {
     await requireAdmin();
-    await deleteContentType(id);
+    await deleteContentType(id, text(formData, "confirmacion"));
     refresh("/admin", "/admin/types");
   } catch (error) {
     return toFormState(error);
@@ -309,8 +310,11 @@ export async function updateEntryAction(
     });
 
     const data = entryDataSchema(type).parse(readEntryData(type.fields, formData));
+    const esperado = expectedUpdatedAtSchema.parse(
+      text(formData, "expectedUpdatedAt") || undefined,
+    );
 
-    await updateEntry(type, id, base, data, actor);
+    await updateEntry(type, id, base, data, actor, esperado);
     refresh("/admin", `/admin/content/${apiId}`, `/admin/content/${apiId}/${id}`);
     return { status: "success", message: "Guardado" };
   } catch (error) {

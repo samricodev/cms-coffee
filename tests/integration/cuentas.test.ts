@@ -179,3 +179,40 @@ describe("protecciones contra quedarse fuera", () => {
   });
 
 });
+
+describe("confirmación al borrar un tipo de contenido", () => {
+  it("rechaza el borrado si el texto no coincide", async () => {
+    const { crearTipo } = await import("../helpers");
+    const { deleteContentType } = await import("@/lib/content-types");
+    const tipo = await crearTipo("receta");
+
+    const error = await esperarError(() => deleteContentType(tipo.id, "recetas"));
+
+    expect(error.code).toBe("conflict");
+    expect(error.message).toContain("receta");
+  });
+
+  it("borra cuando el texto coincide", async () => {
+    const { crearTipo } = await import("../helpers");
+    const { deleteContentType, listContentTypes } = await import(
+      "@/lib/content-types"
+    );
+    const tipo = await crearTipo("receta");
+
+    await deleteContentType(tipo.id, "receta");
+
+    expect(await listContentTypes()).toHaveLength(0);
+  });
+
+  it("sin confirmación explícita sigue borrando (la API no la exige)", async () => {
+    const { crearTipo } = await import("../helpers");
+    const { deleteContentType, listContentTypes } = await import(
+      "@/lib/content-types"
+    );
+    const tipo = await crearTipo("receta");
+
+    await deleteContentType(tipo.id);
+
+    expect(await listContentTypes()).toHaveLength(0);
+  });
+});

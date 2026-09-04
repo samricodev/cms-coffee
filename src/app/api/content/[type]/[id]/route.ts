@@ -11,7 +11,10 @@ import {
   updateEntry,
 } from "@/lib/entries";
 import { attachExpansion, parseExpand, resolveRelations } from "@/lib/relations";
-import { updateEntryBaseSchema } from "@/lib/validation/content";
+import {
+  expectedUpdatedAtSchema,
+  updateEntryBaseSchema,
+} from "@/lib/validation/content";
 
 type Context = { params: Promise<{ type: string; id: string }> };
 
@@ -57,8 +60,15 @@ export async function PATCH(request: Request, context: Context) {
     const data = entryDataSchema(type).safeParse(merged);
     if (!data.success) return unprocessable(data.error);
 
+    // Opcional: si el cliente envía `updatedAt`, se comprueba que nadie haya
+    // guardado por en medio. Es el equivalente de If-Match sin ETags.
+    const esperado = expectedUpdatedAtSchema.safeParse(
+      (payload as { updatedAt?: unknown }).updatedAt,
+    );
+    if (!esperado.success) return unprocessable(esperado.error);
+
     return NextResponse.json(
-      await updateEntry(type, id, base.data, data.data, actor),
+      await updateEntry(type, id, base.data, data.data, actor, esperado.data),
     );
   } catch (error) {
     return errorResponse(error);

@@ -139,6 +139,15 @@ export async function createContentType(
   return created;
 }
 
+async function contarEntradas(contentTypeId: string): Promise<number> {
+  const [fila] = await db
+    .select({ value: count() })
+    .from(entries)
+    .where(eq(entries.contentTypeId, contentTypeId));
+
+  return fila.value;
+}
+
 const PG_FOREIGN_KEY_VIOLATION = "23503";
 
 function isForeignKeyViolation(error: unknown): boolean {
@@ -150,7 +159,25 @@ function isForeignKeyViolation(error: unknown): boolean {
   return false;
 }
 
-export async function deleteContentType(id: string): Promise<void> {
+export async function deleteContentType(
+  id: string,
+  confirmacion?: string,
+): Promise<void> {
+  const tipo = await getContentTypeById(id);
+
+  /**
+   * Se comprueba aquí y no solo en el formulario: una confirmación que vive
+   * únicamente en la interfaz se salta con una petición suelta.
+   */
+  if (confirmacion !== undefined && confirmacion.trim() !== tipo.apiId) {
+    const total = await contarEntradas(id);
+    const contenido = total === 1 ? "su entrada" : `sus ${total} entradas`;
+
+    throw conflict(
+      `Para borrar «${tipo.name}» y ${contenido}, escribe exactamente «${tipo.apiId}».`,
+    );
+  }
+
   let deleted: { id: string } | undefined;
 
   try {

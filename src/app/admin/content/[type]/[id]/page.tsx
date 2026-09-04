@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { deleteEntryAction, updateEntryAction } from "@/app/admin/actions";
-import { DeleteForm } from "@/components/delete-form";
+import { ConfirmDelete } from "@/components/confirm-delete";
 import { EntryForm } from "@/components/entry-form";
 import { card, secondary } from "@/components/ui";
 import { assertCanModify, requireUser } from "@/lib/auth/guards";
@@ -99,9 +99,10 @@ export default async function EditEntryPage({
         </section>
       ) : null}
 
-      <DeleteForm
+      <ConfirmDelete
         action={deleteEntryAction.bind(null, apiId, entry.id)}
         label="Borrar entrada"
+        aviso={`«${entry.title}» se borrará definitivamente. Si otras entradas la referencian, el borrado se rechazará.`}
       />
     </div>
   );

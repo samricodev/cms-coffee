@@ -88,6 +88,12 @@ export const entryBaseSchema = z.object({
 
 export const updateEntryBaseSchema = z.object(entryFields).partial();
 
+/**
+ * Marca de tiempo que tenía la entrada cuando se cargó el formulario. Sirve
+ * para detectar que alguien guardó por en medio.
+ */
+export const expectedUpdatedAtSchema = z.coerce.date().optional();
+
 export const listEntriesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).catch(1),
   limit: z.coerce.number().int().min(1).max(100).catch(20),

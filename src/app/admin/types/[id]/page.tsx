@@ -7,7 +7,7 @@ import {
   deleteFieldAction,
   moveFieldAction,
 } from "@/app/admin/actions";
-import { DeleteForm } from "@/components/delete-form";
+import { ConfirmDelete } from "@/components/confirm-delete";
 import { FieldForm } from "@/components/field-form";
 import { Forbidden } from "@/components/forbidden";
 import { SubmitButton } from "@/components/submit-button";
@@ -136,9 +136,11 @@ export default async function ContentTypePage({
         <FieldForm contentTypeId={type.id} targets={targets} />
       </section>
 
-      <DeleteForm
+      <ConfirmDelete
         action={deleteContentTypeAction.bind(null, type.id)}
         label="Borrar tipo y su contenido"
+        aviso={`Se borrarán el tipo «${type.name}», sus ${type.fields.length} campos y todas sus entradas. No hay vuelta atrás.`}
+        confirmar={{ campo: "confirmacion", valor: type.apiId }}
       />
     </div>
   );

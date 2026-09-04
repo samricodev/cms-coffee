@@ -175,6 +175,15 @@ export function EntryForm({
     <form action={formAction} className="space-y-4">
       <FormMessage state={state} />
 
+      {entry ? (
+        <input
+          type="hidden"
+          name="expectedUpdatedAt"
+          value={entry.updatedAt.toISOString()}
+          readOnly
+        />
+      ) : null}
+
       <div>
         <label className={label} htmlFor="title">
           Título

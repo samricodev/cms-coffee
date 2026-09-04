@@ -277,6 +277,25 @@ Así «me salió el error c92d5486» es una línea concreta y no una búsqueda a
 ciegas por la hora aproximada. La `causa` se conserva porque es donde viaja el
 error real cuando Drizzle envuelve al driver de Postgres.
 
+## Ediciones simultáneas y borrados
+
+Al editar una entrada, el formulario envía la marca de tiempo que cargó. Si en
+la base hay otra, alguien guardó por en medio y el guardado se rechaza con un
+aviso que **dice quién y cuándo**, en vez de pisar su trabajo en silencio:
+
+> Ana guardó esta entrada el 04/09/26, 12:22 p. m., después de que tú la
+> abrieras. Recarga la página para ver sus cambios; si guardas ahora, los
+> borrarías.
+
+La API acepta lo mismo: un `updatedAt` opcional en el `PATCH`, que devuelve
+`409` si no coincide. Sin enviarlo, el comportamiento es el de antes —la última
+escritura gana—, así que los clientes existentes no se rompen.
+
+Los borrados destructivos piden confirmación con un `<details>`, que funciona
+sin JavaScript. Borrar un tipo de contenido exige **escribir su `api_id`**, y
+esa comprobación vive en el servidor: una confirmación que solo existe en la
+interfaz se salta con una petición suelta.
+
 ## Cuentas y contraseñas
 
 - **Cambiar la propia**: pide la actual y **cierra el resto de sesiones**,

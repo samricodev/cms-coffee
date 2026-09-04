@@ -120,6 +120,9 @@ export const entries = pgTable(
     authorId: uuid("author_id").references(() => users.id, {
       onDelete: "set null",
     }),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     searchVector: tsvector("search_vector").generatedAlwaysAs(
       sql`setweight(to_tsvector('spanish', coalesce("title", '')), 'A') || setweight(jsonb_to_tsvector('spanish', "data", '["string"]'), 'B')`,
     ),

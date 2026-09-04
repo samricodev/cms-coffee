@@ -150,15 +150,47 @@ export async function createEntry(
   }
 }
 
+const formatoHora = new Intl.DateTimeFormat("es-MX", {
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+async function mensajeDeConflicto(current: Entry): Promise<string> {
+  const [quien] = current.updatedBy
+    ? await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, current.updatedBy))
+        .limit(1)
+    : [];
+
+  const autor = quien?.name ?? "Otra persona";
+
+  return `${autor} guardó esta entrada el ${formatoHora.format(current.updatedAt)}, después de que tú la abrieras. Recarga la página para ver sus cambios; si guardas ahora, los borrarías.`;
+}
+
 export async function updateEntry(
   type: ContentTypeWithFields,
   id: string,
   base: Partial<EntryBaseInput>,
   data: Record<string, unknown>,
   actor: SessionUser,
+  expectedUpdatedAt?: Date,
 ): Promise<Entry> {
   const current = await getEntry(type, id);
   assertCanModify(actor, current);
+
+  /**
+   * Bloqueo optimista: el formulario envía la marca de tiempo que cargó. Si en
+   * la base hay otra, alguien guardó por en medio y esta escritura borraría su
+   * trabajo sin que nadie se entere.
+   */
+  if (
+    expectedUpdatedAt &&
+    current.updatedAt.getTime() !== expectedUpdatedAt.getTime()
+  ) {
+    throw conflict(await mensajeDeConflicto(current));
+  }
 
   const { publishedAt, ...fields } = base;
 
@@ -184,6 +216,7 @@ export async function updateEntry(
         data,
         ...(scheduled !== undefined ? { publishedAt: scheduled } : {}),
         ...(becomesPublished ? { publishedAt: new Date() } : {}),
+        updatedBy: actor.id,
         updatedAt: new Date(),
       })
       .where(eq(entries.id, id))
