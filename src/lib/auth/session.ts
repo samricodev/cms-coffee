@@ -47,11 +47,19 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       and(
         eq(sessions.tokenHash, hashToken(token)),
         gt(sessions.expiresAt, new Date()),
+        // Desactivar una cuenta borra sus sesiones, pero comprobarlo aquí
+        // también cierra la ventana entre ambas operaciones.
+        eq(users.active, true),
       ),
     )
     .limit(1);
 
   return row ?? null;
+}
+
+export async function getCurrentTokenHash(): Promise<string | undefined> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  return token ? hashToken(token) : undefined;
 }
 
 export async function destroySession(token: string | undefined) {

@@ -47,9 +47,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             Ver sitio
           </Link>
 
-          <span className="ml-auto text-black/60 dark:text-white/60">
+          <Link
+            href="/admin/cuenta"
+            className="ml-auto text-black/60 hover:underline dark:text-white/60"
+          >
             {user.name} · {user.role}
-          </span>
+          </Link>
           <form action={logoutAction}>
             <button type="submit" className="hover:underline">
               Salir

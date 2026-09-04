@@ -139,7 +139,8 @@ prerenderizan y se revalidan solas. El nombre del sitio y el menú se cambian en
 | `/admin/content/:tipo` | Entradas de un tipo dinámico |
 | `/admin/content/:tipo/new` · `/:id` | Formulario generado a partir de los campos del tipo |
 | `/admin/media` | Biblioteca de archivos |
-| `/admin/users` | Cuentas (solo `admin`) |
+| `/admin/cuenta` | Cambiar la propia contraseña |
+| `/admin/users` | Cuentas: crear, cambiar rol, activar/desactivar y resetear contraseña (solo `admin`) |
 | `/` | Vista pública de prueba: solo entradas publicadas |
 
 El panel **no llama a la API**: las páginas leen de `src/lib/*` en el servidor y
@@ -247,19 +248,32 @@ gratis lo que un `LIKE` nunca dará: raíces (`vertido` encuentra `vertidos`),
 tildes indiferentes (`cafe` = `café`), frases entre comillas y ordenación por
 relevancia, con el título pesando más que el cuerpo.
 
+## Cuentas y contraseñas
+
+- **Cambiar la propia**: pide la actual y **cierra el resto de sesiones**,
+  conservando la del navegador desde el que se cambia.
+- **Reseteo por un administrador**: cierra **todas** las sesiones del usuario,
+  incluida la suya. Si le robaron la cuenta, el ladrón queda fuera.
+- **Desactivar**: borra sus sesiones y bloquea el acceso. El login devuelve el
+  mismo mensaje que una credencial incorrecta, para no confirmar qué emails
+  existen.
+- **Protecciones**: nadie puede desactivarse ni cambiarse el rol a sí mismo, y
+  la base nunca se queda sin administradores activos.
+
 ## Pruebas
 
 ```bash
 npm test
 ```
 
-46 pruebas en dos capas. Las **unitarias** no tocan la base: esquema dinámico de
+57 pruebas en dos capas. Las **unitarias** no tocan la base: esquema dinámico de
 validación, reglas de propiedad, slugs y renderizado de Markdown. Las de
 **integración** corren contra una base aparte (`cms_test`, creada y migrada por
 `npm test`), y cubren lo que solo se rompe de verdad: unicidad de slug por tipo,
 que una actualización parcial no despublique, que un editor no toque contenido
 ajeno, que no se borre lo que otros referencian, y que borradores y entradas
-programadas no lleguen a la API pública.
+programadas no lleguen a la API pública, y todas las reglas de cuentas y
+contraseñas de arriba.
 
 Nunca tocan la base de desarrollo: `tests/setup.ts` apunta `DATABASE_URL` a la
 de pruebas antes de que se cargue el cliente, y las funciones de caché y cookies

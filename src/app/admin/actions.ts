@@ -8,10 +8,17 @@ import {
   SESSION_COOKIE,
   createSession,
   destroySession,
+  getCurrentTokenHash,
   sessionCookieOptions,
 } from "@/lib/auth/session";
 import { requireAdmin, requireUser } from "@/lib/auth/guards";
-import { authenticate, createUser } from "@/lib/users";
+import {
+  authenticate,
+  changeOwnPassword,
+  createUser,
+  resetPassword,
+  updateUser,
+} from "@/lib/users";
 import {
   addField,
   createContentType,
@@ -34,7 +41,14 @@ import {
   entryBaseSchema,
 } from "@/lib/validation/content";
 import { formValues, toFormState, type FormState } from "@/lib/form";
-import { createUserSchema, loginSchema } from "@/lib/validation/auth";
+import {
+  changePasswordSchema,
+  createUserSchema,
+  loginSchema,
+  resetPasswordSchema,
+  updateUserSchema,
+  type UpdateUserInput,
+} from "@/lib/validation/auth";
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "");
@@ -329,4 +343,74 @@ export async function deleteMediaAction(id: string) {
   const actor = await requireUser();
   await deleteMedia(id, actor);
   refresh("/admin/media");
+}
+
+export async function changePasswordAction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    const actor = await requireUser();
+
+    const input = changePasswordSchema.parse({
+      current: text(formData, "current"),
+      next: text(formData, "next"),
+      repeat: text(formData, "repeat"),
+    });
+
+    await changeOwnPassword(actor, input, await getCurrentTokenHash());
+
+    return {
+      status: "success",
+      message: "Contraseña cambiada. Se han cerrado tus otras sesiones.",
+    };
+  } catch (error) {
+    return toFormState(error, formValues(formData));
+  }
+}
+
+export async function resetPasswordAction(
+  userId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    const actor = await requireAdmin();
+    const { password } = resetPasswordSchema.parse({
+      password: text(formData, "password"),
+    });
+
+    const user = await resetPassword(actor, userId, password);
+    refresh("/admin/users");
+
+    return {
+      status: "success",
+      message: `Contraseña de ${user.email} cambiada. Sus sesiones se han cerrado.`,
+    };
+  } catch (error) {
+    return toFormState(error, formValues(formData));
+  }
+}
+
+export async function updateUserAction(
+  userId: string,
+  patch: UpdateUserInput,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  try {
+    const actor = await requireAdmin();
+    const user = await updateUser(actor, userId, updateUserSchema.parse(patch));
+    refresh("/admin/users");
+
+    return {
+      status: "success",
+      message:
+        patch.active === undefined
+          ? `${user.email} ahora es ${user.role}.`
+          : `${user.email} ${user.active ? "reactivada" : "desactivada"}.`,
+    };
+  } catch (error) {
+    return toFormState(error);
+  }
 }
