@@ -7,9 +7,12 @@ eventos.
 El contenido se modela **desde el panel**, sin escribir código: los tipos y sus
 campos son datos, no tablas.
 
-> **Alcance.** Este repo gestiona *contenido*. El inventario, las recetas y el
-> punto de venta son un proyecto aparte y aparcado — ver
-> [docs/alcance.md](docs/alcance.md) y [docs/inventario.md](docs/inventario.md).
+> **Alcance.** Este repo gestiona *contenido*: lo que se escribe una vez y se
+> lee mil veces. El inventario, las recetas y el punto de venta son *estado*,
+> que cambia cada vez que alguien sirve un café; son un proyecto aparte, con su
+> propia base de datos, y está aparcado. Si aparece la tentación de añadir un
+> campo `stock` a un tipo de contenido, esa es la señal de que ese dato
+> pertenece al otro proyecto.
 
 ## Stack
 
@@ -323,14 +326,15 @@ existe en la interfaz se salta con una petición suelta.
 npm test
 ```
 
-57 pruebas en dos capas. Las **unitarias** no tocan la base: esquema dinámico de
-validación, reglas de propiedad, slugs y renderizado de Markdown. Las de
-**integración** corren contra una base aparte (`cms_test`, creada y migrada por
-`npm test`), y cubren lo que solo se rompe de verdad: unicidad de slug por tipo,
-que una actualización parcial no despublique, que un editor no toque contenido
-ajeno, que no se borre lo que otros referencian, y que borradores y entradas
-programadas no lleguen a la API pública, y todas las reglas de cuentas y
-contraseñas de arriba.
+80 pruebas en dos capas. Las **unitarias** no tocan la base: esquema dinámico de
+validación, reglas de propiedad, slugs, renderizado de Markdown y registro de
+errores. Las de **integración** corren contra una base aparte (`cms_test`,
+creada y migrada por `npm test`), y cubren lo que solo se rompe de verdad:
+unicidad de slug por tipo, que una actualización parcial no despublique, que un
+editor no toque contenido ajeno, que no se borre lo que otros referencian ni un
+archivo en uso, que dos ediciones simultáneas no se pisen, que el límite de
+intentos de login corte, que borradores y entradas programadas no lleguen a la
+API pública, y todas las reglas de cuentas y contraseñas de arriba.
 
 Nunca tocan la base de desarrollo: `tests/setup.ts` apunta `DATABASE_URL` a la
 de pruebas antes de que se cargue el cliente, y las funciones de caché y cookies
@@ -338,13 +342,50 @@ de Next se sustituyen por no-ops porque solo existen dentro de una petición.
 
 ## Despliegue
 
-Copias de seguridad: ver [docs/copias.md](docs/copias.md). Hay que sacarlas de
-la máquina antes de considerar esto desplegado.
-
 Variables necesarias: `DATABASE_URL`, `SITE_URL` y `SEED_PASSWORD` (solo para
 el seed). Antes de arrancar, `npm run db:migrate`. La carpeta `storage/media`
 debe ser un volumen persistente: si el servidor es efímero, los archivos
 subidos desaparecen y hay que moverlos a un almacenamiento externo.
+
+### Copias de seguridad
+
+Hay que salvar dos cosas: la base de datos y `storage/media`. Perder cualquiera
+de las dos deja el CMS inservible, y la segunda se olvida siempre.
+
+```bash
+npm run backup           # vuelca la base y empaqueta los archivos
+npm run backup:verify    # simulacro de restauración de la copia más reciente
+npm run restore          # muestra la ayuda y las copias disponibles
+```
+
+Cada copia queda en `backups/<fecha-hora>/` con el volcado (`base.dump`), los
+archivos (`media.tar.gz`) y un `info.txt` con la fecha, el número de migraciones
+y el commit del que salió. Ese último dato importa más de lo que parece: un
+volcado solo se restaura bien sobre un código que entienda su esquema.
+
+Restaurar pide escribir el nombre de la base de destino a propósito, porque el
+accidente típico es restaurar sobre producción creyendo que era una prueba:
+
+```bash
+CONFIRMAR=cms npm run restore backups/20260903-212851 cms
+```
+
+`backup:verify` restaura la copia más reciente en una base desechable, comprueba
+las tablas, las migraciones y los recuentos de filas, cruza los archivos del
+paquete con las filas de `media` y luego la borra. **Una copia que nunca se ha
+restaurado no es una copia**, es un archivo del que te fías.
+
+Automatizado con `crontab -e`, copia diaria y simulacro semanal:
+
+```
+15 3 * * * cd /ruta/al/proyecto && ./scripts/backup.sh >> backups/registro.log 2>&1
+15 4 * * 0 cd /ruta/al/proyecto && ./scripts/verify-backup.sh >> backups/registro.log 2>&1
+```
+
+Queda pendiente lo que convierte esto en una copia de seguridad de verdad:
+`backups/` está en la misma máquina que la base, así que protege de un borrado
+accidental pero no de que se estropee el disco. Antes de dar el despliegue por
+hecho, las copias tienen que salir de la máquina.
 
 ## Roadmap
 
@@ -356,7 +397,7 @@ subidos desaparecen y hay que moverlos a un almacenamiento externo.
 - [x] **Fase 6** — Publicación, media, API pública y caché
 - [x] **Migración** — `posts` absorbido por el sistema dinámico (tipo `articulo`)
 
-Siguiente, hacia el sitio de la cafetería (ver [docs/alcance.md](docs/alcance.md)):
+Siguiente, hacia el sitio de la cafetería:
 
 - [x] **Fase 7** — Tipos de campo `media`, `tags` y `richtext`, y reordenar campos
 - [x] **Fase 8** — Relaciones entre tipos, con expansión e integridad referencial
