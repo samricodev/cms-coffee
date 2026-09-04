@@ -39,10 +39,10 @@ jobs:
       - run: npm ci
 
       - name: Tipos
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Lint
-        run: npx eslint .
+        run: npm run lint
 
       - name: Pruebas
         run: npm test
