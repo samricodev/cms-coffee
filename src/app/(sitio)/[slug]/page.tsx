@@ -1,12 +1,9 @@
 import { notFound } from "next/navigation";
 
 import { Prose } from "@/components/site/prose";
-import { getPublicEntries, getPublicEntry } from "@/lib/public-content";
+import { getPublicEntry } from "@/lib/public-content";
 
-export async function generateStaticParams() {
-  const paginas = await getPublicEntries("pagina", 100);
-  return paginas.map((pagina) => ({ slug: pagina.slug }));
-}
+export const instant = false;
 
 export async function generateMetadata({ params }: PageProps<"/[slug]">) {
   const { slug } = await params;

@@ -4,11 +4,7 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/site/json-ld";
 import { MediaImage } from "@/components/site/media-image";
 import { asList, asText, formatMoney } from "@/lib/format";
-import {
-  getPublicEntries,
-  getPublicEntry,
-  getPublicReferences,
-} from "@/lib/public-content";
+import { getPublicEntry, getPublicReferences } from "@/lib/public-content";
 import { site } from "@/lib/site";
 
 const FICHA: Array<[string, string]> = [
@@ -22,10 +18,7 @@ const FICHA: Array<[string, string]> = [
   ["Tueste", "tueste"],
 ];
 
-export async function generateStaticParams() {
-  const cafes = await getPublicEntries("cafe", 100);
-  return cafes.map((cafe) => ({ slug: cafe.slug }));
-}
+export const instant = false;
 
 export async function generateMetadata({ params }: PageProps<"/cafes/[slug]">) {
   const { slug } = await params;

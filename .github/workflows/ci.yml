@@ -44,6 +44,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # El build consulta la base: generateStaticParams pregunta qué páginas
+      # prerenderizar. Sin esquema, falla con «relation does not exist».
+      - name: Migraciones
+        run: npx drizzle-kit migrate
+
       - name: Pruebas
         run: npm test
 

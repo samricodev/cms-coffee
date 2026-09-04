@@ -5,13 +5,10 @@ import { JsonLd } from "@/components/site/json-ld";
 import { MediaImage } from "@/components/site/media-image";
 import { Prose } from "@/components/site/prose";
 import { asList, asText, formatDate } from "@/lib/format";
-import { getPublicEntries, getPublicEntry } from "@/lib/public-content";
+import { getPublicEntry } from "@/lib/public-content";
 import { site } from "@/lib/site";
 
-export async function generateStaticParams() {
-  const articulos = await getPublicEntries("articulo", 100);
-  return articulos.map((articulo) => ({ slug: articulo.slug }));
-}
+export const instant = false;
 
 export async function generateMetadata({ params }: PageProps<"/articulos/[slug]">) {
   const { slug } = await params;
