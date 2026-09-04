@@ -291,10 +291,19 @@ La API acepta lo mismo: un `updatedAt` opcional en el `PATCH`, que devuelve
 `409` si no coincide. Sin enviarlo, el comportamiento es el de antes —la última
 escritura gana—, así que los clientes existentes no se rompen.
 
-Los borrados destructivos piden confirmación con un `<details>`, que funciona
-sin JavaScript. Borrar un tipo de contenido exige **escribir su `api_id`**, y
-esa comprobación vive en el servidor: una confirmación que solo existe en la
-interfaz se salta con una petición suelta.
+**Los cuatro borrados** —entrada, campo, tipo de contenido y archivo— piden
+confirmación con un `<details>`, que funciona sin JavaScript. El aviso dice qué
+se pierde en cada caso, no un «¿estás seguro?»:
+
+| Borrado | Qué avisa | Qué impide |
+|---|---|---|
+| Entrada | Que es definitivo | Se rechaza si otras entradas la referencian |
+| Campo | Cuántas entradas tienen valor guardado ahí | — |
+| Tipo | Cuántos campos y entradas se van | Exige escribir su `api_id` |
+| Archivo | Que se borra del disco | Se rechaza si alguna entrada lo usa |
+
+La confirmación escrita del tipo se comprueba **en el servidor**: una que solo
+existe en la interfaz se salta con una petición suelta.
 
 ## Cuentas y contraseñas
 

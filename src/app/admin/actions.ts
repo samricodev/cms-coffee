@@ -252,10 +252,21 @@ export async function moveFieldAction(
   refresh("/admin/types", `/admin/types/${contentTypeId}`);
 }
 
-export async function deleteFieldAction(contentTypeId: string, fieldId: string) {
-  await requireAdmin();
-  await deleteField(contentTypeId, fieldId);
-  refresh("/admin/types", `/admin/types/${contentTypeId}`);
+export async function deleteFieldAction(
+  contentTypeId: string,
+  fieldId: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  try {
+    await requireAdmin();
+    await deleteField(contentTypeId, fieldId);
+    refresh("/admin/types", `/admin/types/${contentTypeId}`);
+
+    return { status: "success", message: "Campo quitado" };
+  } catch (error) {
+    return toFormState(error);
+  }
 }
 
 export async function createEntryAction(
@@ -360,10 +371,20 @@ export async function uploadMediaAction(
   }
 }
 
-export async function deleteMediaAction(id: string) {
-  const actor = await requireUser();
-  await deleteMedia(id, actor);
-  refresh("/admin/media");
+export async function deleteMediaAction(
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  try {
+    const actor = await requireUser();
+    await deleteMedia(id, actor);
+    refresh("/admin/media");
+
+    return { status: "success", message: "Archivo borrado" };
+  } catch (error) {
+    return toFormState(error);
+  }
 }
 
 export async function changePasswordAction(

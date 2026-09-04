@@ -17,17 +17,28 @@ export function ConfirmDelete({
   label: etiqueta,
   aviso,
   confirmar,
+  compacto = false,
 }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   label: string;
   aviso: string;
   confirmar?: { campo: string; valor: string };
+  /** Para filas de una lista: sin recuadro y con el disparador más discreto. */
+  compacto?: boolean;
 }) {
   const [state, formAction] = useActionState(action, idleForm);
 
   return (
-    <details className="rounded-md border border-red-500/30 p-3">
-      <summary className="cursor-pointer text-sm font-medium text-red-600 dark:text-red-400">
+    <details
+      className={
+        compacto ? "" : "rounded-md border border-red-500/30 p-3"
+      }
+    >
+      <summary
+        className={`cursor-pointer text-red-600 dark:text-red-400 ${
+          compacto ? "text-xs hover:underline" : "text-sm font-medium"
+        }`}
+      >
         {etiqueta}
       </summary>
 

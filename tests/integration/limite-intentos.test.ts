@@ -98,3 +98,58 @@ describe("límite de intentos de login", () => {
     );
   });
 });
+
+describe("borrar archivos en uso", () => {
+  it("rechaza el borrado si una entrada usa el archivo", async () => {
+    const { crearTipo, crearUsuario } = await import("../helpers");
+    const { db } = await import("@/db");
+    const { media } = await import("@/db/schema");
+    const { createEntry } = await import("@/lib/entries");
+    const { deleteMedia, listMediaUsage } = await import("@/lib/media");
+
+    const actor = await crearUsuario("admin", "admin@test.local");
+    const tipo = await crearTipo("cafe", [{ apiKey: "foto", type: "media" }]);
+
+    const [archivo] = await db
+      .insert(media)
+      .values({
+        filename: "grano.png",
+        mimeType: "image/png",
+        size: 10,
+        storageKey: "abc.png",
+        uploadedBy: actor.id,
+      })
+      .returning();
+
+    await createEntry(tipo, { title: "Chelbesa", status: "draft" }, { foto: archivo.id }, actor);
+
+    expect(await listMediaUsage(archivo.id)).toHaveLength(1);
+
+    const error = await esperarError(() => deleteMedia(archivo.id, actor));
+    expect(error.code).toBe("conflict");
+    expect(error.message).toContain("Chelbesa");
+  });
+
+  it("permite borrarlo cuando nadie lo usa", async () => {
+    const { crearUsuario } = await import("../helpers");
+    const { db } = await import("@/db");
+    const { media } = await import("@/db/schema");
+    const { deleteMedia, listMedia } = await import("@/lib/media");
+
+    const actor = await crearUsuario("admin", "admin@test.local");
+    const [archivo] = await db
+      .insert(media)
+      .values({
+        filename: "suelto.png",
+        mimeType: "image/png",
+        size: 10,
+        storageKey: "suelto.png",
+        uploadedBy: actor.id,
+      })
+      .returning();
+
+    await deleteMedia(archivo.id, actor);
+
+    expect(await listMedia()).toHaveLength(0);
+  });
+});

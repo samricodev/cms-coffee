@@ -1,6 +1,6 @@
 import { deleteMediaAction } from "@/app/admin/actions";
+import { ConfirmDelete } from "@/components/confirm-delete";
 import { MediaForm } from "@/components/media-form";
-import { SubmitButton } from "@/components/submit-button";
 import { card } from "@/components/ui";
 import { requireUser } from "@/lib/auth/guards";
 import { listMedia } from "@/lib/media";
@@ -58,14 +58,12 @@ export default async function MediaPage() {
                 </p>
 
                 {mine ? (
-                  <form action={deleteMediaAction.bind(null, item.id)}>
-                    <SubmitButton
-                      className="text-xs text-red-600 hover:underline dark:text-red-400"
-                      pendingLabel="…"
-                    >
-                      Borrar
-                    </SubmitButton>
-                  </form>
+                  <ConfirmDelete
+                    action={deleteMediaAction.bind(null, item.id)}
+                    label="Borrar"
+                    compacto
+                    aviso={`«${item.filename}» se borrará del disco definitivamente. Si alguna entrada lo usa, el borrado se rechazará.`}
+                  />
                 ) : null}
               </li>
             );

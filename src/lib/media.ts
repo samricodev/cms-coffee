@@ -2,12 +2,18 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { media, type Media } from "@/db/schema";
+import {
+  contentFields,
+  contentTypes,
+  entries,
+  media,
+  type Media,
+} from "@/db/schema";
 import type { SessionUser } from "@/lib/auth/session";
-import { AppError, forbidden, notFound } from "@/lib/errors";
+import { AppError, conflict, forbidden, notFound } from "@/lib/errors";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -72,11 +78,54 @@ export async function createMedia(
   return created;
 }
 
+export type UsoDeArchivo = { id: string; title: string; typeApiId: string };
+
+/**
+ * Dónde se está usando un archivo. Hay que mirar en dos sitios: la columna
+ * `seo_image_id`, que sí tiene clave foránea, y los campos de tipo archivo, que
+ * viven dentro del JSONB y ahí Postgres no puede ayudar.
+ */
+export async function listMediaUsage(mediaId: string): Promise<UsoDeArchivo[]> {
+  const camposArchivo = await db
+    .select()
+    .from(contentFields)
+    .where(eq(contentFields.type, "media"));
+
+  const coincidencias = camposArchivo.map((field) =>
+    and(
+      eq(entries.contentTypeId, field.contentTypeId),
+      sql`${entries.data} @> ${JSON.stringify({ [field.apiKey]: mediaId })}::jsonb`,
+    ),
+  );
+
+  return db
+    .select({
+      id: entries.id,
+      title: entries.title,
+      typeApiId: contentTypes.apiId,
+    })
+    .from(entries)
+    .innerJoin(contentTypes, eq(contentTypes.id, entries.contentTypeId))
+    .where(or(eq(entries.seoImageId, mediaId), ...coincidencias))
+    .limit(20);
+}
+
 export async function deleteMedia(id: string, actor: SessionUser): Promise<void> {
   const item = await getMediaById(id);
 
   if (actor.role !== "admin" && item.uploadedBy !== actor.id) {
     throw forbidden("Solo puedes borrar los archivos que has subido");
+  }
+
+  const usos = await listMediaUsage(id);
+
+  if (usos.length > 0) {
+    const nombres = usos.slice(0, 3).map((uso) => `«${uso.title}»`).join(", ");
+    const resto = usos.length > 3 ? ` y ${usos.length - 3} más` : "";
+
+    throw conflict(
+      `No se puede borrar: ${nombres}${resto} usa${usos.length === 1 ? "" : "n"} este archivo. Quita la imagen de esas entradas primero.`,
+    );
   }
 
   await db.delete(media).where(eq(media.id, id));

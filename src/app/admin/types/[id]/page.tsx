@@ -13,8 +13,20 @@ import { Forbidden } from "@/components/forbidden";
 import { SubmitButton } from "@/components/submit-button";
 import { card, secondary } from "@/components/ui";
 import { requireUser } from "@/lib/auth/guards";
-import { getContentTypeById, listContentTypes } from "@/lib/content-types";
+import {
+  contarEntradasConValor,
+  getContentTypeById,
+  listContentTypes,
+} from "@/lib/content-types";
 import { AppError } from "@/lib/errors";
+
+function avisoValores(total: number): string {
+  if (total === 0) return "Ninguna entrada tiene valor en este campo.";
+
+  return total === 1
+    ? "1 entrada tiene un valor guardado aquí: dejará de verse y de poder editarse."
+    : `${total} entradas tienen un valor guardado aquí: dejará de verse y de poder editarse.`;
+}
 
 const FIELD_TYPE_LABEL: Record<string, string> = {
   text: "Texto",
@@ -48,6 +60,15 @@ export default async function ContentTypePage({
     throw error;
   });
 
+  const conValor = Object.fromEntries(
+    await Promise.all(
+      type.fields.map(
+        async (field) =>
+          [field.id, await contarEntradasConValor(type.id, field.apiKey)] as const,
+      ),
+    ),
+  );
+
   const targets = (await listContentTypes()).map((option) => ({
     id: option.id,
     name: option.name,
@@ -72,7 +93,8 @@ export default async function ContentTypePage({
       ) : (
         <ul className="space-y-2">
           {type.fields.map((field, index) => (
-            <li key={field.id} className={`${card} flex flex-wrap items-center gap-2`}>
+            <li key={field.id} className={`${card} space-y-2`}>
+              <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{field.label}</span>
               <code className="text-xs text-black/60 dark:text-white/60">
                 {field.apiKey}
@@ -117,15 +139,15 @@ export default async function ContentTypePage({
                     </SubmitButton>
                   </form>
                 ) : null}
-              <form action={deleteFieldAction.bind(null, type.id, field.id)}>
-                <SubmitButton
-                  className="text-xs text-red-600 hover:underline dark:text-red-400"
-                  pendingLabel="…"
-                >
-                  Quitar
-                </SubmitButton>
-              </form>
               </div>
+              </div>
+
+              <ConfirmDelete
+                action={deleteFieldAction.bind(null, type.id, field.id)}
+                label="Quitar campo"
+                compacto
+                aviso={`Se quitará «${field.label}» del tipo. ${avisoValores(conValor[field.id])}`}
+              />
             </li>
           ))}
         </ul>

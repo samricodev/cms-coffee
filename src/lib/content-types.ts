@@ -259,6 +259,23 @@ export async function moveField(
   revalidateTag(contentTag(type.apiId), "max");
 }
 
+export async function contarEntradasConValor(
+  contentTypeId: string,
+  apiKey: string,
+): Promise<number> {
+  const [fila] = await db
+    .select({ value: count() })
+    .from(entries)
+    .where(
+      and(
+        eq(entries.contentTypeId, contentTypeId),
+        sql`${entries.data} ? ${apiKey}`,
+      ),
+    );
+
+  return fila.value;
+}
+
 export async function deleteField(
   contentTypeId: string,
   fieldId: string,
