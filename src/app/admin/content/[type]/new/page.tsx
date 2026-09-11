@@ -22,7 +22,7 @@ export default async function NewEntryPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Nueva entrada · {type.name}</h1>
+      <h1 className="font-display text-3xl">Nueva entrada · {type.name}</h1>
       <EntryForm
         action={createEntryAction.bind(null, apiId)}
         fields={type.fields}

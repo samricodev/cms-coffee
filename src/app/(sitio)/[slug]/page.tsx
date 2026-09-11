@@ -23,9 +23,11 @@ export default async function PaginaPage({ params }: PageProps<"/[slug]">) {
   if (!pagina) notFound();
 
   return (
-    <article className="mx-auto max-w-2xl space-y-6">
-      <h1 className="font-display text-4xl leading-tight">{pagina.title}</h1>
-      <Prose markdown={pagina.data.cuerpo} />
+    <article className="mx-auto max-w-2xl space-y-8">
+      <h1 className="border-b border-line pb-6 font-display text-5xl leading-[1.08]">
+        {pagina.title}
+      </h1>
+      <Prose markdown={pagina.data.cuerpo} className="text-lg" />
     </article>
   );
 }

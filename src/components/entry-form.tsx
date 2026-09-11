@@ -41,7 +41,7 @@ function RelationField({
 
   if (options.length === 0) {
     return (
-      <p className="text-sm text-black/60 dark:text-white/60">
+      <p className="text-sm text-muted">
         No hay entradas del tipo enlazado todavía.
       </p>
     );
@@ -68,7 +68,7 @@ function RelationField({
   }
 
   return (
-    <ul className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-black/15 p-2 dark:border-white/20">
+    <ul className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-line p-2">
       {options.map((option) => (
         <li key={option.id}>
           <label className="flex items-center gap-2 text-sm">
@@ -81,7 +81,7 @@ function RelationField({
             />
             {option.title}
             {option.status === "draft" ? (
-              <span className="text-xs text-black/50 dark:text-white/50">
+              <span className="text-xs text-muted">
                 borrador
               </span>
             ) : null}
@@ -265,14 +265,14 @@ export function EntryForm({
               : "",
           )}
         />
-        <p className="mt-1 text-xs text-black/60 dark:text-white/60">
+        <p className="mt-1 text-xs text-muted">
           Con una fecha futura, la entrada no aparece en la API pública hasta
           entonces.
         </p>
         <FieldError message={issueOf(state, "publishedAt")} />
       </div>
 
-      <details className="rounded-md border border-black/10 p-3 dark:border-white/15">
+      <details className="rounded-md border border-line p-3">
         <summary className="cursor-pointer text-sm font-medium">
           SEO y compartición
         </summary>
@@ -293,7 +293,7 @@ export function EntryForm({
                 entry?.seoDescription ?? "",
               )}
             />
-            <p className="mt-1 text-xs text-black/60 dark:text-white/60">
+            <p className="mt-1 text-xs text-muted">
               El texto que aparece bajo el título en Google. Hasta 200
               caracteres; vacío lo borra.
             </p>

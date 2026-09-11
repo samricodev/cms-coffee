@@ -77,8 +77,8 @@ export default async function ContentTypePage({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">{type.name}</h1>
-        <code className="text-xs text-black/60 dark:text-white/60">
+        <h1 className="font-display text-3xl">{type.name}</h1>
+        <code className="text-xs text-muted">
           /api/content/{type.apiId}
         </code>
         <Link href={`/admin/content/${type.apiId}`} className={`${secondary} ml-auto`}>
@@ -87,7 +87,7 @@ export default async function ContentTypePage({
       </div>
 
       {type.fields.length === 0 ? (
-        <p className={`${card} text-sm text-black/60 dark:text-white/60`}>
+        <p className={`${card} text-sm text-muted`}>
           Este tipo aún no tiene campos: sus entradas solo tendrán título y slug.
         </p>
       ) : (
@@ -96,25 +96,25 @@ export default async function ContentTypePage({
             <li key={field.id} className={`${card} space-y-2`}>
               <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{field.label}</span>
-              <code className="text-xs text-black/60 dark:text-white/60">
+              <code className="text-xs text-muted">
                 {field.apiKey}
               </code>
-              <span className="rounded bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10">
+              <span className="rounded bg-surface px-2 py-0.5 text-xs">
                 {FIELD_TYPE_LABEL[field.type]}
               </span>
               {field.required ? (
-                <span className="text-xs text-black/60 dark:text-white/60">
+                <span className="text-xs text-muted">
                   obligatorio
                 </span>
               ) : null}
               {field.type === "relation" ? (
-                <span className="text-xs text-black/60 dark:text-white/60">
+                <span className="text-xs text-muted">
                   → {targets.find((target) => target.id === field.targetTypeId)?.name ?? "?"}
                   {field.multiple ? " (varias)" : ""}
                 </span>
               ) : null}
               {field.choices?.length ? (
-                <span className="text-xs text-black/60 dark:text-white/60">
+                <span className="text-xs text-muted">
                   {field.choices.join(" · ")}
                 </span>
               ) : null}
@@ -122,7 +122,7 @@ export default async function ContentTypePage({
                 {index > 0 ? (
                   <form action={moveFieldAction.bind(null, type.id, field.id, "up")}>
                     <SubmitButton
-                      className="text-xs text-black/60 hover:underline dark:text-white/60"
+                      className="text-xs text-muted hover:underline"
                       pendingLabel="…"
                     >
                       Subir
@@ -132,7 +132,7 @@ export default async function ContentTypePage({
                 {index < type.fields.length - 1 ? (
                   <form action={moveFieldAction.bind(null, type.id, field.id, "down")}>
                     <SubmitButton
-                      className="text-xs text-black/60 hover:underline dark:text-white/60"
+                      className="text-xs text-muted hover:underline"
                       pendingLabel="…"
                     >
                       Bajar

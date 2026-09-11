@@ -19,7 +19,7 @@ export function formatMoney(value: unknown): string {
   return typeof value === "number" ? money.format(value) : "";
 }
 
-export function formatDate(value: unknown): string {
+function toDate(value: unknown): Date | null {
   const date =
     value instanceof Date
       ? value
@@ -27,18 +27,28 @@ export function formatDate(value: unknown): string {
         ? new Date(`${value}T12:00:00`)
         : null;
 
-  return date && !Number.isNaN(date.getTime()) ? longDate.format(date) : "";
+  return date && !Number.isNaN(date.getTime()) ? date : null;
+}
+
+export function formatDate(value: unknown): string {
+  const date = toDate(value);
+  return date ? longDate.format(date) : "";
 }
 
 export function formatShortDate(value: unknown): string {
-  const date =
-    value instanceof Date
-      ? value
-      : typeof value === "string"
-        ? new Date(`${value}T12:00:00`)
-        : null;
+  const date = toDate(value);
+  return date ? shortDate.format(date) : "";
+}
 
-  return date && !Number.isNaN(date.getTime()) ? shortDate.format(date) : "";
+export function dateParts(value: unknown): { day: string; month: string } | null {
+  const date = toDate(value);
+  if (!date) return null;
+
+  const parts = shortDate.formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+
+  return { day: part("day"), month: part("month").replace(".", "") };
 }
 
 export function asText(value: unknown): string {

@@ -44,8 +44,8 @@ export default async function EditEntryPage({
   if (!canModify) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-semibold">{entry.title}</h1>
-        <p className="text-sm text-black/60 dark:text-white/60">
+        <h1 className="font-display text-3xl">{entry.title}</h1>
+        <p className="text-sm text-muted">
           Esta entrada es de otro autor, así que solo puedes leerla.
         </p>
         <pre className={`${card} overflow-x-auto text-xs`}>
@@ -61,7 +61,7 @@ export default async function EditEntryPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">Editar · {type.name}</h1>
+        <h1 className="font-display text-3xl">Editar · {type.name}</h1>
         <Link href={`/admin/content/${apiId}`} className={`${secondary} ml-auto`}>
           Volver
         </Link>
@@ -87,13 +87,13 @@ export default async function EditEntryPage({
                 >
                   {item.title}
                 </Link>
-                <span className="ml-2 text-xs text-black/50 dark:text-white/50">
+                <span className="ml-2 text-xs text-muted">
                   {item.typeName}
                 </span>
               </li>
             ))}
           </ul>
-          <p className="text-xs text-black/60 dark:text-white/60">
+          <p className="text-xs text-muted">
             Mientras existan estas referencias, la entrada no se puede borrar.
           </p>
         </section>

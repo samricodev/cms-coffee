@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { CoffeeLabel } from "@/components/site/coffee-label";
 import { JsonLd } from "@/components/site/json-ld";
 import { MediaImage } from "@/components/site/media-image";
 import { Prose } from "@/components/site/prose";
-import { asList, asText, formatDate } from "@/lib/format";
+import { arrowLink, eyebrow } from "@/components/site/ui";
+import { asText, formatDate } from "@/lib/format";
 import { getPublicEntry } from "@/lib/public-content";
 import { site } from "@/lib/site";
 
@@ -49,7 +51,7 @@ export default async function ArticuloPage({
     | undefined;
 
   return (
-    <article className="mx-auto max-w-2xl space-y-8">
+    <article className="mx-auto max-w-2xl space-y-10">
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -63,15 +65,15 @@ export default async function ArticuloPage({
         }}
       />
 
-      <header className="space-y-3">
-        <p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-accent">
+      <header className="space-y-5 border-b border-line pb-8">
+        <p className={`${eyebrow} text-accent`}>
           {[asText(articulo.data.seccion), formatDate(articulo.publishedAt)]
             .filter(Boolean)
             .join(" · ")}
         </p>
-        <h1 className="font-display text-4xl leading-[1.15]">{articulo.title}</h1>
+        <h1 className="font-display text-5xl leading-[1.08]">{articulo.title}</h1>
         {asText(articulo.data.excerpt) ? (
-          <p className="text-lg text-muted">{asText(articulo.data.excerpt)}</p>
+          <p className="text-xl text-muted">{asText(articulo.data.excerpt)}</p>
         ) : null}
       </header>
 
@@ -79,41 +81,26 @@ export default async function ArticuloPage({
         <MediaImage
           id={articulo.data.portada}
           alt={articulo.title}
-          className="aspect-video w-full"
+          className="aspect-video w-full rounded-sm"
           sizes="(max-width: 768px) 100vw, 42rem"
           priority
         />
       ) : null}
 
-      <Prose markdown={articulo.data.body} />
+      <Prose markdown={articulo.data.body} className="text-lg" />
 
       {cafe ? (
-        <aside className="space-y-2 border-t border-line pt-6">
-          <p className="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-muted">
-            El café del que habla
-          </p>
-          <h2 className="font-display text-2xl">
-            <Link href={`/cafes/${cafe.slug}`} className="hover:text-accent">
-              {cafe.title}
-            </Link>
-          </h2>
-          <p className="text-sm text-muted">
-            {[asText(cafe.data.pais), asText(cafe.data.proceso)]
-              .filter(Boolean)
-              .join(" · ")}
-            {asList(cafe.data.notas).length > 0
-              ? ` — ${asList(cafe.data.notas).join(", ")}`
-              : ""}
-          </p>
+        <aside className="space-y-3 border-t border-line pt-8">
+          <p className={`${eyebrow} text-muted`}>El café del que habla</p>
+          <div className="max-w-sm">
+            <CoffeeLabel cafe={cafe} heading="h2" />
+          </div>
         </aside>
       ) : null}
 
       <p>
-        <Link
-          href="/articulos"
-          className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted hover:text-accent"
-        >
-          ← Todo el diario
+        <Link href="/articulos" className={arrowLink}>
+          <span aria-hidden>←</span> Todo el diario
         </Link>
       </p>
     </article>

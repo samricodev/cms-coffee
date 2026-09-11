@@ -53,10 +53,10 @@ export function MediaPicker({
             src={`/api/media/${value}`}
             alt=""
             onError={() => setBroken(true)}
-            className="h-16 w-16 rounded border border-black/10 object-cover dark:border-white/15"
+            className="h-16 w-16 rounded border border-line object-cover"
           />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded border border-dashed border-black/15 text-[10px] text-black/50 dark:border-white/20 dark:text-white/50">
+          <div className="flex h-16 w-16 items-center justify-center rounded border border-dashed border-line text-[10px] text-muted">
             {value ? "archivo" : "vacío"}
           </div>
         )}
@@ -68,7 +68,7 @@ export function MediaPicker({
         {value ? (
           <button
             type="button"
-            className="text-sm text-red-600 hover:underline dark:text-red-400"
+            className="text-sm text-red-600 hover:underline"
             onClick={() => setValue("")}
           >
             Quitar
@@ -78,7 +78,7 @@ export function MediaPicker({
 
       <dialog
         ref={dialog}
-        className="m-auto w-[min(42rem,92vw)] rounded-lg border border-black/10 bg-background p-5 text-foreground backdrop:bg-black/60 dark:border-white/15"
+        className="m-auto w-[min(42rem,92vw)] rounded-lg border border-line bg-paper p-5 text-ink backdrop:bg-ink/60"
       >
         <div className="mb-4 flex items-center gap-3">
           <h2 className="font-medium">Biblioteca</h2>
@@ -92,9 +92,9 @@ export function MediaPicker({
         </div>
 
         {items === null ? (
-          <p className="text-sm text-black/60 dark:text-white/60">Cargando…</p>
+          <p className="text-sm text-muted">Cargando…</p>
         ) : items.length === 0 ? (
-          <p className="text-sm text-black/60 dark:text-white/60">
+          <p className="text-sm text-muted">
             No hay archivos todavía. Súbelos desde Medios.
           </p>
         ) : (
@@ -104,7 +104,7 @@ export function MediaPicker({
                 <button
                   type="button"
                   onClick={() => choose(item)}
-                  className="w-full rounded border border-black/10 p-2 text-left hover:border-black/40 dark:border-white/15 dark:hover:border-white/50"
+                  className="w-full rounded border border-line p-2 text-left hover:border-accent"
                 >
                   {item.mimeType.startsWith("image/") ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -114,7 +114,7 @@ export function MediaPicker({
                       className="h-20 w-full rounded object-contain"
                     />
                   ) : (
-                    <div className="flex h-20 items-center justify-center rounded bg-black/5 text-[10px] dark:bg-white/10">
+                    <div className="flex h-20 items-center justify-center rounded bg-surface text-[10px]">
                       {item.mimeType}
                     </div>
                   )}

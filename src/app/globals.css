@@ -1,14 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 
-  --paper: #faf9f6;
-  --ink: #17150f;
-  --muted: #7c7669;
-  --accent: #2f5d50;
-  --line: #e2ded4;
+  --paper: #fdfcfa;
+  --surface: #f1f5f0;
+  --ink: #2e1f16;
+  --muted: #6b5a4c;
+  --accent: #245a3d;
+  --line: #dde3da;
+  --field: #859082;
+  --deep: #2e1f16;
+  --deep-ink: #f6f1ea;
+  --deep-accent: #8fcaa6;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
 }
 
 @theme inline {
@@ -19,22 +26,14 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-line: var(--line);
+  --color-field: var(--field);
+  --color-surface: var(--surface);
+  --color-deep: var(--deep);
+  --color-deep-ink: var(--deep-ink);
+  --color-deep-accent: var(--deep-accent);
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
   --font-mono: var(--font-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-
-    --paper: #14150f;
-    --ink: #f0eee6;
-    --muted: #9a958a;
-    --accent: #86b6a3;
-    --line: #2b2c24;
-  }
 }
 
 html {
@@ -45,6 +44,17 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body), system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--paper);
 }
 
 .prose-preview {
@@ -77,8 +87,9 @@ body {
 .prose-preview li { margin-top: 0.25rem; }
 
 .prose-preview a {
+  color: var(--accent);
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-underline-offset: 3px;
 }
 
 .prose-preview blockquote {

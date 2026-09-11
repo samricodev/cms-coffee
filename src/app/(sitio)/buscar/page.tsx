@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { buttonPrimary, eyebrow } from "@/components/site/ui";
 import { asText } from "@/lib/format";
 import { searchPublic } from "@/lib/public-content";
 
@@ -34,19 +35,16 @@ async function Resultados({
 
   return (
     <>
-      <form className="flex max-w-xl gap-3 border-y border-line py-5">
+      <form className="flex max-w-xl gap-3 rounded-sm bg-surface p-4">
         <input
           type="search"
           name="q"
           defaultValue={q}
           placeholder="jazmín, natural, V60…"
           aria-label="Buscar"
-          className="flex-1 border border-line bg-transparent px-3 py-2 focus:border-accent focus:outline-none"
+          className="min-w-0 flex-1 rounded-full border border-field bg-white px-4 py-2 hover:border-ink/60 focus:border-accent"
         />
-        <button
-          type="submit"
-          className="border border-ink px-4 font-mono text-[0.65rem] uppercase tracking-[0.14em] transition-colors hover:bg-ink hover:text-paper"
-        >
+        <button type="submit" className={buttonPrimary}>
           Buscar
         </button>
       </form>
@@ -60,10 +58,10 @@ async function Resultados({
           Nada coincide con <strong>{q}</strong>.
         </p>
       ) : (
-        <ul className="space-y-5">
+        <ul className="space-y-6">
           {hits.map((hit) => (
-            <li key={hit.id} className="border-t border-line pt-4">
-              <p className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-accent">
+            <li key={hit.id} className="space-y-1.5 border-t border-line pt-5">
+              <p className={`${eyebrow} text-accent`}>
                 {hit.typeName}
               </p>
               <h2 className="font-display text-2xl leading-tight">
@@ -93,7 +91,7 @@ export default function BuscarPage({ searchParams }: PageProps<"/buscar">) {
   return (
     <div className="space-y-8">
       <header className="max-w-2xl space-y-3">
-        <h1 className="font-display text-4xl">Buscar</h1>
+        <h1 className="font-display text-5xl">Buscar</h1>
       </header>
 
       <Suspense fallback={<p className="py-10 text-muted">Buscando…</p>}>

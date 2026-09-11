@@ -22,7 +22,7 @@ export function ResetPasswordForm({
 
   return (
     <details className="mt-2">
-      <summary className="cursor-pointer text-xs text-black/60 hover:underline dark:text-white/60">
+      <summary className="cursor-pointer text-xs text-muted hover:underline">
         Cambiar su contraseña
       </summary>
 
@@ -42,7 +42,7 @@ export function ResetPasswordForm({
             minLength={12}
             required
           />
-          <p className="mt-1 text-xs text-black/60 dark:text-white/60">
+          <p className="mt-1 text-xs text-muted">
             Cerrará todas sus sesiones. Tendrás que comunicársela por un canal
             seguro y pedirle que la cambie.
           </p>

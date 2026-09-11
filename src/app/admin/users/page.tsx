@@ -20,7 +20,7 @@ export default async function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Usuarios</h1>
+      <h1 className="font-display text-3xl">Usuarios</h1>
 
       <ul className="space-y-3">
         {users.map((user) => {
@@ -30,26 +30,26 @@ export default async function UsersPage() {
             <li key={user.id} className={`${card} space-y-3`}>
               <div className="flex flex-wrap items-baseline gap-2">
                 <span className="font-medium">{user.name}</span>
-                <span className="text-sm text-black/60 dark:text-white/60">
+                <span className="text-sm text-muted">
                   {user.email}
                 </span>
                 {yo ? (
-                  <span className="rounded bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10">
+                  <span className="rounded bg-surface px-2 py-0.5 text-xs">
                     tú
                   </span>
                 ) : null}
                 {!user.active ? (
-                  <span className="rounded bg-red-500/10 px-2 py-0.5 text-xs text-red-700 dark:text-red-400">
+                  <span className="rounded bg-red-500/10 px-2 py-0.5 text-xs text-red-700">
                     desactivada
                   </span>
                 ) : null}
-                <span className="ml-auto rounded bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10">
+                <span className="ml-auto rounded bg-surface px-2 py-0.5 text-xs">
                   {user.role}
                 </span>
               </div>
 
               {yo ? (
-                <p className="text-xs text-black/60 dark:text-white/60">
+                <p className="text-xs text-muted">
                   No puedes cambiarte el rol ni desactivarte a ti mismo. Tu
                   contraseña se cambia en Mi cuenta.
                 </p>

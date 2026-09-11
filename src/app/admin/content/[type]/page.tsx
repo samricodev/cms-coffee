@@ -36,7 +36,7 @@ export default async function EntriesPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">{type.name}</h1>
+        <h1 className="font-display text-3xl">{type.name}</h1>
         <Link href={`/admin/content/${apiId}/new`} className={`${primary} ml-auto`}>
           Nueva entrada
         </Link>
@@ -64,7 +64,7 @@ export default async function EntriesPage({
       </form>
 
       {items.length === 0 ? (
-        <p className={`${card} text-sm text-black/60 dark:text-white/60`}>
+        <p className={`${card} text-sm text-muted`}>
           No hay entradas de tipo {type.name}.
         </p>
       ) : (
@@ -81,16 +81,22 @@ export default async function EntriesPage({
                   >
                     {entry.title}
                   </Link>
-                  <span className="rounded bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10">
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      entry.status === "published"
+                        ? "bg-accent/10 text-accent"
+                        : "bg-surface text-muted"
+                    }`}
+                  >
                     {entry.status === "published" ? "publicada" : "borrador"}
                   </span>
                   {!mine ? (
-                    <span className="text-xs text-black/50 dark:text-white/50">
+                    <span className="text-xs text-muted">
                       solo lectura
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1 text-xs text-black/60 dark:text-white/60">
+                <p className="mt-1 text-xs text-muted">
                   /{entry.slug} · {entry.authorName ?? "sin autor"}
                 </p>
               </li>
@@ -106,7 +112,7 @@ export default async function EntriesPage({
               Anterior
             </Link>
           ) : null}
-          <span className="text-black/60 dark:text-white/60">
+          <span className="text-muted">
             Página {pagination.page} de {pagination.totalPages} · {pagination.total}{" "}
             entradas
           </span>

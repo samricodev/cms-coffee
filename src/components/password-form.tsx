@@ -43,7 +43,7 @@ export function PasswordForm() {
           minLength={12}
           required
         />
-        <p className="mt-1 text-xs text-black/60 dark:text-white/60">
+        <p className="mt-1 text-xs text-muted">
           Al menos 12 caracteres. La longitud importa más que los símbolos.
         </p>
         <FieldError message={issueOf(state, "next")} />

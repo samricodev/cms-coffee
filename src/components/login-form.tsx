@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { loginAction } from "@/app/admin/actions";
 import { FieldError, FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
-import { input, label } from "@/components/ui";
+import { input, label, primary } from "@/components/ui";
 import { idleForm, issueOf, valueOf } from "@/lib/form";
 
 export function LoginForm() {
@@ -25,7 +25,11 @@ export function LoginForm() {
           name="email"
           type="email"
           autoComplete="username"
-          defaultValue={valueOf(state, "email", "admin@cms.local")}
+          defaultValue={valueOf(
+            state,
+            "email",
+            process.env.NODE_ENV === "production" ? "" : "admin@cms.local",
+          )}
           required
         />
         <FieldError message={issueOf(state, "email")} />
@@ -46,7 +50,9 @@ export function LoginForm() {
         <FieldError message={issueOf(state, "password")} />
       </div>
 
-      <SubmitButton pendingLabel="Entrando…">Entrar</SubmitButton>
+      <SubmitButton className={`${primary} w-full py-2.5`} pendingLabel="Entrando…">
+        Entrar
+      </SubmitButton>
     </form>
   );
 }

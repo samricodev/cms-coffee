@@ -19,7 +19,7 @@ export default async function MediaPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Medios</h1>
+      <h1 className="font-display text-3xl">Medios</h1>
 
       <section className={`${card} space-y-4`}>
         <h2 className="font-medium">Subir archivo</h2>
@@ -27,7 +27,7 @@ export default async function MediaPage() {
       </section>
 
       {items.length === 0 ? (
-        <p className={`${card} text-sm text-black/60 dark:text-white/60`}>
+        <p className={`${card} text-sm text-muted`}>
           Todavía no hay archivos.
         </p>
       ) : (
@@ -46,13 +46,13 @@ export default async function MediaPage() {
                     className="h-32 w-full rounded object-contain"
                   />
                 ) : (
-                  <div className="flex h-32 items-center justify-center rounded bg-black/5 text-xs dark:bg-white/10">
+                  <div className="flex h-32 items-center justify-center rounded bg-surface text-xs">
                     {item.mimeType}
                   </div>
                 )}
 
                 <p className="truncate text-sm font-medium">{item.filename}</p>
-                <p className="text-xs text-black/60 dark:text-white/60">
+                <p className="text-xs text-muted">
                   {formatSize(item.size)} ·{" "}
                   <code className="select-all">{url}</code>
                 </p>

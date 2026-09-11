@@ -40,7 +40,7 @@ export function TagsInput({
           {tags.map((tag) => (
             <li
               key={tag}
-              className="rounded-full bg-black/5 px-2.5 py-0.5 text-xs dark:bg-white/10"
+              className="rounded-full bg-surface px-2.5 py-0.5 text-xs"
             >
               {tag}
             </li>

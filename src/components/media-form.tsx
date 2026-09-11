@@ -59,7 +59,7 @@ export function MediaForm() {
           Archivo
         </label>
         <input
-          className={input}
+          className={`${input} cursor-pointer py-1.5 text-muted file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-surface file:px-3.5 file:py-1.5 file:text-sm file:font-semibold file:text-accent hover:file:bg-accent/10`}
           id="file"
           name="file"
           type="file"
@@ -67,11 +67,11 @@ export function MediaForm() {
           required
           onChange={(event) => revisar(event.target.files?.[0])}
         />
-        <p className="mt-1 text-xs text-black/60 dark:text-white/60">
+        <p className="mt-1 text-xs text-muted">
           Imágenes o PDF, hasta 5 MB.
         </p>
         {problema ? (
-          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{problema}</p>
+          <p className="mt-1 text-xs text-red-600">{problema}</p>
         ) : null}
       </div>
 

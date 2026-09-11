@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { MediaImage } from "@/components/site/media-image";
+import { arrowLink, eyebrow } from "@/components/site/ui";
 import { asText, formatDate } from "@/lib/format";
 import { getPublicEntries } from "@/lib/public-content";
 
@@ -13,48 +14,45 @@ export default async function ArticulosPage() {
   const articulos = await getPublicEntries("articulo", 50);
 
   return (
-    <div className="space-y-10">
-      <header className="max-w-2xl space-y-3">
-        <h1 className="font-display text-4xl">Diario</h1>
-        <p className="text-muted">
+    <div className="space-y-12">
+      <header className="max-w-2xl space-y-4">
+        <h1 className="font-display text-5xl">Diario</h1>
+        <p className="text-lg text-muted">
           Recetas, orígenes y lo que va cambiando en la barra.
         </p>
       </header>
 
-      <ul className="space-y-8">
+      <ul className="space-y-12">
         {articulos.map((articulo) => (
           <li
             key={articulo.id}
-            className={`grid gap-4 border-t border-line pt-6 ${
-              typeof articulo.data.portada === "string"
-                ? "sm:grid-cols-[1fr_3fr]"
-                : ""
-            }`}
+            className="grid gap-4 border-t border-line pt-8 sm:grid-cols-[11rem_1fr] sm:gap-10"
           >
-            <MediaImage
-              id={articulo.data.portada}
-              alt={articulo.title}
-              className="aspect-4/3 w-full"
-              sizes="(max-width: 640px) 100vw, 25vw"
-            />
+            <div className="space-y-1.5">
+              {asText(articulo.data.seccion) ? (
+                <p className={`${eyebrow} text-accent`}>{asText(articulo.data.seccion)}</p>
+              ) : null}
+              <p className="text-sm text-muted">{formatDate(articulo.publishedAt)}</p>
+            </div>
 
-            <div className="space-y-2">
-              <p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-accent">
-                {[asText(articulo.data.seccion), formatDate(articulo.publishedAt)]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-              <h2 className="font-display text-2xl leading-tight">
-                <Link
-                  href={`/articulos/${articulo.slug}`}
-                  className="hover:text-accent"
-                >
+            <div className="space-y-3">
+              <MediaImage
+                id={articulo.data.portada}
+                alt={articulo.title}
+                className="aspect-video w-full rounded-sm"
+                sizes="(max-width: 640px) 100vw, 45rem"
+              />
+              <h2 className="font-display text-3xl leading-tight">
+                <Link href={`/articulos/${articulo.slug}`} className="hover:text-accent">
                   {articulo.title}
                 </Link>
               </h2>
-              <p className="max-w-prose text-muted">
+              <p className="max-w-prose text-lg text-muted">
                 {asText(articulo.data.excerpt)}
               </p>
+              <Link href={`/articulos/${articulo.slug}`} className={arrowLink}>
+                Leer <span aria-hidden>→</span>
+              </Link>
             </div>
           </li>
         ))}

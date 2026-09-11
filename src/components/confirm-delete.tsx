@@ -35,7 +35,7 @@ export function ConfirmDelete({
       }
     >
       <summary
-        className={`cursor-pointer text-red-600 dark:text-red-400 ${
+        className={`cursor-pointer text-red-600 ${
           compacto ? "text-xs hover:underline" : "text-sm font-medium"
         }`}
       >
@@ -45,7 +45,7 @@ export function ConfirmDelete({
       <div className="mt-3 space-y-3">
         <FormMessage state={state} />
 
-        <p className="max-w-prose text-sm text-black/70 dark:text-white/70">
+        <p className="max-w-prose text-sm text-ink/80">
           {aviso}
         </p>
 

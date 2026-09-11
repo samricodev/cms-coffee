@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { MediaImage } from "@/components/site/media-image";
-import { asList, asText } from "@/lib/format";
+import { CoffeeLabel } from "@/components/site/coffee-label";
+import { buttonPrimary, eyebrow } from "@/components/site/ui";
 import { getCafeChoices, getFilteredCafes } from "@/lib/public-content";
 
 export const metadata = {
@@ -10,9 +10,8 @@ export const metadata = {
   description: "Los orígenes que servimos: proceso, altitud y notas de cata.",
 };
 
-const label = "font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted";
 const control =
-  "w-full border border-line bg-transparent px-2 py-1.5 text-sm focus:border-accent focus:outline-none";
+  "w-full rounded-sm border border-field bg-white px-2.5 py-2 text-sm hover:border-ink/60 focus:border-accent";
 
 function Select({
   name,
@@ -28,8 +27,8 @@ function Select({
   if (options.length === 0) return null;
 
   return (
-    <label className="space-y-1">
-      <span className={`block ${label}`}>{title}</span>
+    <label className="space-y-1.5">
+      <span className={`block ${eyebrow} text-muted`}>{title}</span>
       <select name={name} defaultValue={value} className={control}>
         <option value="">Todos</option>
         {options.map((option) => (
@@ -67,7 +66,7 @@ async function Resultados({
 
   return (
     <>
-      <form className="grid gap-4 border-y border-line py-5 sm:grid-cols-4">
+      <form className="grid gap-4 rounded-sm bg-surface p-5 sm:grid-cols-4 sm:p-6">
         <Select name="pais" title="Origen" options={choices.pais} value={filters.pais} />
         <Select
           name="proceso"
@@ -83,19 +82,19 @@ async function Resultados({
         />
         <Select name="nota" title="Nota" options={choices.notas} value={filters.nota} />
 
-        <div className="flex items-end gap-4 sm:col-span-4">
-          <button
-            type="submit"
-            className="border border-ink px-4 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] transition-colors hover:bg-ink hover:text-paper"
-          >
+        <div className="flex flex-wrap items-center gap-4 sm:col-span-4">
+          <button type="submit" className={buttonPrimary}>
             Filtrar
           </button>
           {filtrando ? (
-            <Link href="/cafes" className={`${label} hover:text-accent`}>
+            <Link
+              href="/cafes"
+              className="text-sm font-semibold text-muted underline-offset-4 hover:text-accent hover:underline"
+            >
               Quitar filtros
             </Link>
           ) : null}
-          <span className={`ml-auto ${label}`}>
+          <span className="ml-auto text-sm text-muted">
             {cafes.length} {cafes.length === 1 ? "café" : "cafés"}
           </span>
         </div>
@@ -106,36 +105,10 @@ async function Resultados({
           Ningún café coincide con esos filtros. Prueba a quitar alguno.
         </p>
       ) : (
-        <ul className="grid gap-8 sm:grid-cols-2">
+        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {cafes.map((cafe) => (
-            <li key={cafe.id} className="flex gap-4 border-t border-line pt-4">
-              <MediaImage
-                id={cafe.data.foto}
-                alt={cafe.title}
-                className="aspect-square w-24 shrink-0"
-                sizes="96px"
-              />
-
-              <div className="min-w-0 space-y-1">
-                <h2 className="font-display text-xl">
-                  <Link href={`/cafes/${cafe.slug}`} className="hover:text-accent">
-                    {cafe.title}
-                  </Link>
-                </h2>
-                <p className="font-mono text-xs uppercase tracking-[0.1em] text-muted">
-                  {[asText(cafe.data.pais), asText(cafe.data.proceso)]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-                <p className="text-sm text-muted">
-                  {asList(cafe.data.notas).join(" · ")}
-                </p>
-                {cafe.data.puntuacion ? (
-                  <p className="font-mono text-xs tabular-nums">
-                    {asText(cafe.data.puntuacion)} SCA
-                  </p>
-                ) : null}
-              </div>
+            <li key={cafe.id}>
+              <CoffeeLabel cafe={cafe} heading="h2" />
             </li>
           ))}
         </ul>
@@ -146,18 +119,16 @@ async function Resultados({
 
 export default function CafesPage({ searchParams }: PageProps<"/cafes">) {
   return (
-    <div className="space-y-8">
-      <header className="max-w-2xl space-y-3">
-        <h1 className="font-display text-4xl">Cafés</h1>
-        <p className="text-muted">
+    <div className="space-y-10">
+      <header className="max-w-2xl space-y-4">
+        <h1 className="font-display text-5xl">Cafés</h1>
+        <p className="text-lg text-muted">
           Todo lo que ha pasado por el molino esta temporada. Ordenados por
           puntuación.
         </p>
       </header>
 
-      <Suspense
-        fallback={<p className="py-10 text-muted">Cargando cafés…</p>}
-      >
+      <Suspense fallback={<p className="py-10 text-muted">Cargando cafés…</p>}>
         <Resultados searchParams={searchParams} />
       </Suspense>
     </div>

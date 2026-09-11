@@ -19,10 +19,10 @@ export default async function ContentTypesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Tipos de contenido</h1>
+      <h1 className="font-display text-3xl">Tipos de contenido</h1>
 
       {types.length === 0 ? (
-        <p className={`${card} text-sm text-black/60 dark:text-white/60`}>
+        <p className={`${card} text-sm text-muted`}>
           Todavía no hay ningún tipo definido.
         </p>
       ) : (
@@ -36,7 +36,7 @@ export default async function ContentTypesPage() {
                 >
                   {type.name}
                 </Link>
-                <code className="text-xs text-black/60 dark:text-white/60">
+                <code className="text-xs text-muted">
                   {type.apiId}
                 </code>
                 <Link
@@ -46,7 +46,7 @@ export default async function ContentTypesPage() {
                   Ver contenido →
                 </Link>
               </div>
-              <p className="mt-1 text-xs text-black/60 dark:text-white/60">
+              <p className="mt-1 text-xs text-muted">
                 {type.fields.length} campos
                 {type.description ? ` · ${type.description}` : ""}
               </p>
