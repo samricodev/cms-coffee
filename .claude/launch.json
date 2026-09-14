@@ -6,6 +6,20 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "3010"],
       "port": 3010
+    },
+    {
+      "name": "fotos",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "/private/tmp/claude-501/-Users-samuelrico-Dev-cms/fb1e2a57-9f06-4fdf-879d-eb2ed26c36b5/scratchpad"
+      ],
+      "port": 8765
     }
   ]
 }

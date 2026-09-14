@@ -14,17 +14,7 @@ import {
 } from "@/db/schema";
 import type { SessionUser } from "@/lib/auth/session";
 import { AppError, conflict, forbidden, notFound } from "@/lib/errors";
-
-const MAX_BYTES = 5 * 1024 * 1024;
-
-const ALLOWED: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/gif": "gif",
-  "image/svg+xml": "svg",
-  "application/pdf": "pdf",
-};
+import { MAX_MEDIA_BYTES, mediaExtension } from "@/lib/media-limits";
 
 function storageDir(): string {
   return path.join(process.cwd(), "storage", "media");
@@ -53,9 +43,9 @@ export async function createMedia(
   actor: SessionUser,
 ): Promise<Media> {
   if (file.size === 0) throw invalid("El archivo está vacío");
-  if (file.size > MAX_BYTES) throw invalid("El archivo supera los 5 MB");
+  if (file.size > MAX_MEDIA_BYTES) throw invalid("El archivo supera los 5 MB");
 
-  const extension = ALLOWED[file.type];
+  const extension = mediaExtension(file.type);
   if (!extension) throw invalid(`Tipo de archivo no permitido: ${file.type}`);
 
   const storageKey = `${randomUUID()}.${extension}`;
