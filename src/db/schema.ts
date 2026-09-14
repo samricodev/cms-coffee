@@ -163,6 +163,7 @@ export const media = pgTable("media", {
   mimeType: text("mime_type").notNull(),
   size: integer("size").notNull(),
   storageKey: text("storage_key").notNull(),
+  alt: text("alt"),
   uploadedBy: uuid("uploaded_by").references(() => users.id, {
     onDelete: "set null",
   }),

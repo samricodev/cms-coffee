@@ -1,6 +1,8 @@
 import Image from "next/image";
 
-export function MediaImage({
+import { getMediaAlt } from "@/lib/public-content";
+
+export async function MediaImage({
   id,
   alt,
   className = "",
@@ -15,11 +17,13 @@ export function MediaImage({
 }) {
   if (typeof id !== "string" || id === "") return null;
 
+  const descripcion = (await getMediaAlt(id)) ?? alt;
+
   return (
     <div className={`relative overflow-hidden ${className}`}>
       <Image
         src={`/api/media/${id}`}
-        alt={alt}
+        alt={descripcion}
         fill
         sizes={sizes}
         priority={priority}

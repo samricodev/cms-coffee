@@ -6,6 +6,7 @@ import {
   contentFields,
   contentTypes,
   entries,
+  media,
   type ContentTypeWithFields,
 } from "@/db/schema";
 import { attachExpansion, resolveRelations, type ExpandedEntry } from "@/lib/relations";
@@ -14,6 +15,21 @@ export const contentTag = (apiId: string) => `content:${apiId}`;
 export const TYPES_TAG = "content-types";
 export const REFERENCES_TAG = "references";
 export const SEARCH_TAG = "search";
+export const MEDIA_TAG = "media";
+
+export async function getMediaAlt(id: string): Promise<string | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(MEDIA_TAG);
+
+  const [row] = await db
+    .select({ alt: media.alt })
+    .from(media)
+    .where(eq(media.id, id))
+    .limit(1);
+
+  return row?.alt ?? null;
+}
 
 export type PublicEntry = {
   id: string;

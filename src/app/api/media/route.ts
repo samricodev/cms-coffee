@@ -11,6 +11,7 @@ function toJson(item: Media) {
     filename: item.filename,
     mimeType: item.mimeType,
     size: item.size,
+    alt: item.alt,
     url: `/api/media/${item.id}`,
   };
 }

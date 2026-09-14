@@ -40,7 +40,8 @@ import {
   updateEntry,
 } from "@/lib/entries";
 import type { ContentField } from "@/db/schema";
-import { createMedia, deleteMedia } from "@/lib/media";
+import { createMedia, deleteMedia, updateMediaAlt } from "@/lib/media";
+import { mediaAltSchema } from "@/lib/validation/media";
 import {
   createContentTypeSchema,
   createFieldSchema,
@@ -366,6 +367,29 @@ export async function uploadMediaAction(
     const item = await createMedia(file, actor);
     refresh("/admin/media");
     return { status: "success", message: `Subido: ${item.filename}` };
+  } catch (error) {
+    return toFormState(error);
+  }
+}
+
+export async function updateMediaAltAction(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await requireUser();
+
+    const alt = mediaAltSchema.parse(text(formData, "alt"));
+    await updateMediaAlt(id, alt);
+    refresh("/admin/media");
+
+    return {
+      status: "success",
+      message: alt
+        ? "Texto alternativo guardado"
+        : "Sin texto: se usará el título de la entrada",
+    };
   } catch (error) {
     return toFormState(error);
   }

@@ -3,6 +3,7 @@ import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { and, desc, eq, or, sql } from "drizzle-orm";
+import { revalidateTag } from "next/cache";
 
 import { db } from "@/db";
 import {
@@ -15,6 +16,7 @@ import {
 import type { SessionUser } from "@/lib/auth/session";
 import { AppError, conflict, forbidden, notFound } from "@/lib/errors";
 import { MAX_MEDIA_BYTES, mediaExtension } from "@/lib/media-limits";
+import { MEDIA_TAG } from "@/lib/public-content";
 
 function storageDir(): string {
   return path.join(process.cwd(), "storage", "media");
@@ -41,6 +43,7 @@ export async function readMediaBytes(item: Media): Promise<Buffer> {
 export async function createMedia(
   file: File,
   actor: SessionUser,
+  alt: string | null = null,
 ): Promise<Media> {
   if (file.size === 0) throw invalid("El archivo está vacío");
   if (file.size > MAX_MEDIA_BYTES) throw invalid("El archivo supera los 5 MB");
@@ -61,11 +64,29 @@ export async function createMedia(
       mimeType: file.type,
       size: file.size,
       storageKey,
+      alt,
       uploadedBy: actor.id,
     })
     .returning();
 
   return created;
+}
+
+export async function updateMediaAlt(
+  id: string,
+  alt: string | null,
+): Promise<Media> {
+  await getMediaById(id);
+
+  const [updated] = await db
+    .update(media)
+    .set({ alt })
+    .where(eq(media.id, id))
+    .returning();
+
+  revalidateTag(MEDIA_TAG, "max");
+
+  return updated;
 }
 
 export type UsoDeArchivo = { id: string; title: string; typeApiId: string };

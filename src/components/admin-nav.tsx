@@ -22,7 +22,7 @@ export function AdminNav({
   return (
     <nav
       aria-label="Panel"
-      className="flex gap-1 overflow-x-auto px-3 pb-3 [scrollbar-width:none] md:flex-col md:gap-6 md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden"
+      className="flex gap-1 overflow-x-auto px-3 pb-3 [scrollbar-none] md:flex-col md:gap-6 md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden"
     >
       {groups.map((group) => (
         <div key={group.title} className="flex gap-1 md:flex-col">

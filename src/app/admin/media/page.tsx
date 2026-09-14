@@ -1,5 +1,6 @@
 import { deleteMediaAction } from "@/app/admin/actions";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { MediaAltForm } from "@/components/media-alt-form";
 import { MediaForm } from "@/components/media-form";
 import { card } from "@/components/ui";
 import { requireUser } from "@/lib/auth/guards";
@@ -42,7 +43,7 @@ export default async function MediaPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={url}
-                    alt={item.filename}
+                    alt={item.alt ?? item.filename}
                     className="h-32 w-full rounded object-contain"
                   />
                 ) : (
@@ -51,11 +52,24 @@ export default async function MediaPage() {
                   </div>
                 )}
 
-                <p className="truncate text-sm font-medium">{item.filename}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium">
+                    {item.filename}
+                  </p>
+                  {item.mimeType.startsWith("image/") && !item.alt ? (
+                    <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-muted">
+                      falta descripción
+                    </span>
+                  ) : null}
+                </div>
                 <p className="text-xs text-muted">
                   {formatSize(item.size)} ·{" "}
                   <code className="select-all">{url}</code>
                 </p>
+
+                {item.mimeType.startsWith("image/") ? (
+                  <MediaAltForm id={item.id} alt={item.alt} />
+                ) : null}
 
                 {mine ? (
                   <ConfirmDelete
