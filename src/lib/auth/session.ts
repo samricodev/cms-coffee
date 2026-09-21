@@ -21,6 +21,8 @@ export async function createSession(userId: string): Promise<{
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
 
+  await purgeExpiredSessions();
+
   await db.insert(sessions).values({
     tokenHash: hashToken(token),
     userId,
