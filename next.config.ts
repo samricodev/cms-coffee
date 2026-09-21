@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+import { contentSecurityPolicy, securityHeaders } from "./src/lib/security-headers";
+
+const dev = process.env.NODE_ENV === "development";
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   experimental: {
@@ -8,7 +12,17 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "6mb",
     },
   },
-  /* config options here */
+  async headers() {
+    return [
+      { source: "/:path*", headers: securityHeaders(dev) },
+      // La API devuelve JSON y archivos: la CSP no aporta nada ahí y
+      // `object-src 'none'` impediría a Chrome abrir los PDF.
+      {
+        source: "/((?!api/).*)",
+        headers: [{ key: "Content-Security-Policy", value: contentSecurityPolicy(dev) }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
