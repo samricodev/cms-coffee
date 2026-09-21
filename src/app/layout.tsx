@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     default: "Cafetería",
     template: "%s · Cafetería",
   },
-  description: "Café de especialidad, tostado de temporada y una carta corta.",
+  description: "Café de especialidad y tostado de temporada.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
