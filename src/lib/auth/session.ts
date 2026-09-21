@@ -8,7 +8,7 @@ import { sessions, users, type User } from "@/db/schema";
 export const SESSION_COOKIE = "cms_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-function hashToken(token: string): string {
+export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 

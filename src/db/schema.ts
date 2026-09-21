@@ -157,6 +157,22 @@ export const loginAttempts = pgTable(
   (table) => [index("login_attempts_key_idx").on(table.key, table.createdAt)],
 );
 
+export const trustedDevices = pgTable(
+  "trusted_devices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenHash: text("token_hash").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [uniqueIndex("trusted_devices_token_hash_idx").on(table.tokenHash)],
+);
+
 export const media = pgTable("media", {
   id: uuid("id").primaryKey().defaultRandom(),
   filename: text("filename").notNull(),
@@ -182,3 +198,4 @@ export type ContentTypeWithFields = ContentType & { fields: ContentField[] };
 export type Media = typeof media.$inferSelect;
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
+export type TrustedDevice = typeof trustedDevices.$inferSelect;

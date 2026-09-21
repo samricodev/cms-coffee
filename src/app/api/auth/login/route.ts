@@ -11,6 +11,7 @@ import {
   limpiarFallosLogin,
   registrarFalloLogin,
 } from "@/lib/auth/rate-limit";
+import { dispositivoDeConfianza, recordarDispositivo } from "@/lib/auth/device";
 import { clientIp } from "@/lib/request";
 import { authenticate } from "@/lib/users";
 import { loginSchema } from "@/lib/validation/auth";
@@ -25,17 +26,19 @@ export async function POST(request: Request) {
     if (!parsed.success) return unprocessable(parsed.error);
 
     const ip = await clientIp();
-    await guardLogin(parsed.data.email, ip);
+    const dispositivo = await dispositivoDeConfianza(parsed.data.email);
+    await guardLogin(parsed.data.email, ip, dispositivo);
 
     let user;
     try {
       user = await authenticate(parsed.data);
     } catch (error) {
-      await registrarFalloLogin(parsed.data.email, ip);
+      await registrarFalloLogin(parsed.data.email, ip, dispositivo);
       throw error;
     }
 
-    await limpiarFallosLogin(parsed.data.email);
+    await limpiarFallosLogin(parsed.data.email, dispositivo);
+    await recordarDispositivo(user.id);
     const { token, expiresAt } = await createSession(user.id);
 
     const response = NextResponse.json({ user });

@@ -1,4 +1,4 @@
-import { and, count, eq, gt, lt, sql } from "drizzle-orm";
+import { and, count, eq, gt, inArray, lt, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { loginAttempts } from "@/db/schema";
@@ -8,16 +8,26 @@ import { tooManyRequests } from "@/lib/errors";
  * Dos límites a la vez, con propósitos distintos:
  * el del email frena adivinar la contraseña de una cuenta concreta;
  * el de la IP frena barrer muchas cuentas desde el mismo sitio.
+ *
+ * Desde un dispositivo de confianza solo cuenta el suyo propio: así quien
+ * llena el contador de un email a propósito no deja fuera al dueño.
  */
 const LIMITES = {
   email: { intentos: 5, ventanaMinutos: 15 },
   ip: { intentos: 20, ventanaMinutos: 15 },
+  dispositivo: { intentos: 5, ventanaMinutos: 15 },
 } as const;
 
 const clave = {
   email: (email: string) => `email:${email.trim().toLowerCase()}`,
   ip: (ip: string) => `ip:${ip}`,
+  dispositivo: (tokenHash: string) => `device:${tokenHash}`,
 };
+
+function clavesDeFallo(email: string, ip: string | null, dispositivo: string | null) {
+  if (dispositivo) return [clave.dispositivo(dispositivo)];
+  return [clave.email(email), ...(ip ? [clave.ip(ip)] : [])];
+}
 
 function desde(minutos: number): Date {
   return new Date(Date.now() - minutos * 60_000);
@@ -44,12 +54,18 @@ async function esperaSegundos(key: string, minutos: number): Promise<number> {
   return Math.max(1, Math.ceil((libreEn - Date.now()) / 1000));
 }
 
-/** Lanza 429 si el email o la IP han fallado demasiadas veces. */
-export async function guardLogin(email: string, ip: string | null): Promise<void> {
-  const comprobaciones = [
-    { key: clave.email(email), ...LIMITES.email },
-    ...(ip ? [{ key: clave.ip(ip), ...LIMITES.ip }] : []),
-  ];
+/** Lanza 429 si el email, la IP o el dispositivo han fallado demasiadas veces. */
+export async function guardLogin(
+  email: string,
+  ip: string | null,
+  dispositivo: string | null = null,
+): Promise<void> {
+  const comprobaciones = dispositivo
+    ? [{ key: clave.dispositivo(dispositivo), ...LIMITES.dispositivo }]
+    : [
+        { key: clave.email(email), ...LIMITES.email },
+        ...(ip ? [{ key: clave.ip(ip), ...LIMITES.ip }] : []),
+      ];
 
   for (const { key, intentos, ventanaMinutos } of comprobaciones) {
     if ((await fallosDesde(key, ventanaMinutos)) >= intentos) {
@@ -66,8 +82,9 @@ export async function guardLogin(email: string, ip: string | null): Promise<void
 export async function registrarFalloLogin(
   email: string,
   ip: string | null,
+  dispositivo: string | null = null,
 ): Promise<void> {
-  const claves = [clave.email(email), ...(ip ? [clave.ip(ip)] : [])];
+  const claves = clavesDeFallo(email, ip, dispositivo);
 
   await db.insert(loginAttempts).values(claves.map((key) => ({ key })));
 
@@ -79,6 +96,10 @@ export async function registrarFalloLogin(
 }
 
 /** Un acierto borra los fallos de ese email: nadie se queda fuera por sus propias erratas. */
-export async function limpiarFallosLogin(email: string): Promise<void> {
-  await db.delete(loginAttempts).where(eq(loginAttempts.key, clave.email(email)));
+export async function limpiarFallosLogin(
+  email: string,
+  dispositivo: string | null = null,
+): Promise<void> {
+  const claves = [clave.email(email), ...(dispositivo ? [clave.dispositivo(dispositivo)] : [])];
+  await db.delete(loginAttempts).where(inArray(loginAttempts.key, claves));
 }

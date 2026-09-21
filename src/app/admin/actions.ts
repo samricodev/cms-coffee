@@ -11,6 +11,7 @@ import {
   getCurrentTokenHash,
   sessionCookieOptions,
 } from "@/lib/auth/session";
+import { dispositivoDeConfianza, recordarDispositivo } from "@/lib/auth/device";
 import { requireAdmin, requireUser } from "@/lib/auth/guards";
 import {
   guardLogin,
@@ -77,17 +78,19 @@ export async function loginAction(
     });
 
     const ip = await clientIp();
-    await guardLogin(input.email, ip);
+    const dispositivo = await dispositivoDeConfianza(input.email);
+    await guardLogin(input.email, ip, dispositivo);
 
     let user;
     try {
       user = await authenticate(input);
     } catch (error) {
-      await registrarFalloLogin(input.email, ip);
+      await registrarFalloLogin(input.email, ip, dispositivo);
       throw error;
     }
 
-    await limpiarFallosLogin(input.email);
+    await limpiarFallosLogin(input.email, dispositivo);
+    await recordarDispositivo(user.id);
     const { token, expiresAt } = await createSession(user.id);
     (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
   } catch (error) {
