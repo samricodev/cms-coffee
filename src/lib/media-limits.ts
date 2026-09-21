@@ -5,7 +5,6 @@ export const MEDIA_TYPES: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
   "image/gif": "gif",
-  "image/svg+xml": "svg",
   "application/pdf": "pdf",
 };
 
@@ -29,4 +28,26 @@ export function mediaProblem(file: { type: string; size: number }): string | nul
   }
 
   return null;
+}
+
+/**
+ * Cabeceras para servir un archivo desde nuestro propio dominio. Solo se
+ * muestra en el navegador lo que está en `MEDIA_TYPES`; cualquier otra cosa
+ * (un SVG antiguo, un tipo que dejó de admitirse) se descarga, porque un SVG
+ * o un HTML abiertos aquí ejecutarían sus scripts con la sesión de quien mire.
+ */
+export function mediaResponseHeaders(item: {
+  mimeType: string;
+  size: number;
+  filename: string;
+}): Record<string, string> {
+  const seguro = mediaExtension(item.mimeType) !== undefined;
+
+  return {
+    "Content-Type": seguro ? item.mimeType : "application/octet-stream",
+    "Content-Length": String(item.size),
+    "Content-Disposition": `${seguro ? "inline" : "attachment"}; filename="${encodeURIComponent(item.filename)}"`,
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "public, max-age=31536000, immutable",
+  };
 }

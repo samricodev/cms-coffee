@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/guards";
 import { badRequest, errorResponse, readJson, unprocessable } from "@/lib/http";
 import { getMediaById, readMediaBytes, updateMediaAlt } from "@/lib/media";
+import { mediaResponseHeaders } from "@/lib/media-limits";
 import { mediaAltSchema } from "@/lib/validation/media";
 
 export async function GET(
@@ -18,12 +19,7 @@ export async function GET(
     const bytes = await readMediaBytes(item);
 
     return new Response(new Uint8Array(bytes), {
-      headers: {
-        "Content-Type": item.mimeType,
-        "Content-Length": String(item.size),
-        "Content-Disposition": `inline; filename="${encodeURIComponent(item.filename)}"`,
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
+      headers: mediaResponseHeaders(item),
     });
   } catch (error) {
     return errorResponse(error);
