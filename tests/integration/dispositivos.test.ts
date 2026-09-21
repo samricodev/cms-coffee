@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cookies } from "next/headers";
 
-import { crearUsuario, limpiarBase } from "../helpers";
+import { crearUsuario, limpiarBase, navegador } from "../helpers";
 import { db } from "@/db";
 import { trustedDevices } from "@/db/schema";
 import { DEVICE_COOKIE, dispositivoDeConfianza, recordarDispositivo } from "@/lib/auth/device";
@@ -9,22 +9,6 @@ import { guardLogin, registrarFalloLogin } from "@/lib/auth/rate-limit";
 import { AppError } from "@/lib/errors";
 
 const IP = "203.0.113.7";
-
-/** Un navegador de mentira: guarda lo que se le pone con `set` y lo devuelve con `get`. */
-function navegador() {
-  const guardadas = new Map<string, string>();
-
-  vi.mocked(cookies).mockResolvedValue({
-    get: (nombre: string) => {
-      const value = guardadas.get(nombre);
-      return value === undefined ? undefined : { name: nombre, value };
-    },
-    set: (nombre: string, value: string) => void guardadas.set(nombre, value),
-    delete: (nombre: string) => void guardadas.delete(nombre),
-  } as unknown as Awaited<ReturnType<typeof cookies>>);
-
-  return guardadas;
-}
 
 async function fallar(veces: number, email: string, dispositivo: string | null = null) {
   for (let i = 0; i < veces; i++) await registrarFalloLogin(email, IP, dispositivo);

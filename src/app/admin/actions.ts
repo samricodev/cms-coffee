@@ -6,21 +6,12 @@ import { revalidatePath } from "next/cache";
 
 import {
   SESSION_COOKIE,
-  createSession,
   destroySession,
   getCurrentTokenHash,
-  sessionCookieOptions,
 } from "@/lib/auth/session";
-import { dispositivoDeConfianza, recordarDispositivo } from "@/lib/auth/device";
 import { requireAdmin, requireUser } from "@/lib/auth/guards";
+import { iniciarSesion } from "@/lib/auth/login";
 import {
-  guardLogin,
-  limpiarFallosLogin,
-  registrarFalloLogin,
-} from "@/lib/auth/rate-limit";
-import { clientIp } from "@/lib/request";
-import {
-  authenticate,
   changeOwnPassword,
   createUser,
   resetPassword,
@@ -77,22 +68,7 @@ export async function loginAction(
       password: text(formData, "password"),
     });
 
-    const ip = await clientIp();
-    const dispositivo = await dispositivoDeConfianza(input.email);
-    await guardLogin(input.email, ip, dispositivo);
-
-    let user;
-    try {
-      user = await authenticate(input);
-    } catch (error) {
-      await registrarFalloLogin(input.email, ip, dispositivo);
-      throw error;
-    }
-
-    await limpiarFallosLogin(input.email, dispositivo);
-    await recordarDispositivo(user.id);
-    const { token, expiresAt } = await createSession(user.id);
-    (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
+    await iniciarSesion(input);
   } catch (error) {
     return toFormState(error, formValues(formData));
   }

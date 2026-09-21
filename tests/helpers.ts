@@ -1,4 +1,6 @@
 import { sql } from "drizzle-orm";
+import { cookies } from "next/headers";
+import { vi } from "vitest";
 
 import { db } from "@/db";
 import {
@@ -89,4 +91,20 @@ export function campo(
     createdAt: new Date(),
     ...extra,
   };
+}
+
+/** Un navegador de mentira: guarda lo que se le pone con `set` y lo devuelve con `get`. */
+export function navegador() {
+  const guardadas = new Map<string, string>();
+
+  vi.mocked(cookies).mockResolvedValue({
+    get: (nombre: string) => {
+      const value = guardadas.get(nombre);
+      return value === undefined ? undefined : { name: nombre, value };
+    },
+    set: (nombre: string, value: string) => void guardadas.set(nombre, value),
+    delete: (nombre: string) => void guardadas.delete(nombre),
+  } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+  return guardadas;
 }

@@ -23,6 +23,7 @@ vi.mock("next/headers", () => ({
     set: vi.fn(),
     delete: vi.fn(),
   })),
+  headers: vi.fn(async () => new Headers()),
 }));
 
 vi.mock("next/navigation", () => ({
